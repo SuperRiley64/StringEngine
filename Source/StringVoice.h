@@ -37,7 +37,12 @@ public:
     // Parameter Setters
     void setDecay(float newDecay);
     void setColor(float newColor);
+    void setPickupPosition(float newPickupPosition);
     void setLetStringsRing(bool shouldRing);
+    
+    void setPickPosition(float newPickPosition);
+    void setPickWidth(float newPickWidth);
+    void setPickStrength(float newPickStrength);
 
 private:
     static constexpr int maxPoints = 256;
@@ -64,11 +69,16 @@ private:
 
     bool isReleasing = false;
 
-    // Parameters
+    // String Parameters
     float decay = 0.8f;
     float color = 0.5f;
-    // TODO: Make this a checkbox parameter.
+    float pickupPosition = 0.85f; // 0 = nut side, 1 = bridge side
     bool letStringsRing = true;
+    
+    // Pick Parameters
+    float pickPosition = 0.25f;
+    float pickWidth = 0.25f;
+    float pickStrength = 0.1f;
     
     // Counts how long the string has been quiet before clearing the voice.
     int quietSamples = 0;

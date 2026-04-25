@@ -52,6 +52,35 @@ juce::AudioProcessorValueTreeState::ParameterLayout GuitarSynthAudioProcessor::c
         juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f),
         0.5f));
 
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "pickupPosition",
+        "Pickup Position",
+        juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f),
+        0.85f));
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "pickPosition",
+        "Pick Position",
+        juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f),
+        0.25f));
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "pickWidth",
+        "Pick Width",
+        juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f),
+        0.25f));
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "pickStrength",
+        "Pick Strength",
+        juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f),
+        0.1f));
+
+    params.push_back(std::make_unique<juce::AudioParameterBool>(
+        "letStringsRing",
+        "Let Strings Ring",
+        true));
+
     return { params.begin(), params.end() };
 }
 
@@ -163,8 +192,13 @@ void GuitarSynthAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, 
     buffer.clear();
     
     // Set Parameters
-    auto decay = apvts.getRawParameterValue("decay");
-    auto color = apvts.getRawParameterValue("color");
+    auto decay          = apvts.getRawParameterValue("decay");
+    auto color          = apvts.getRawParameterValue("color");
+    auto pickupPosition = apvts.getRawParameterValue("pickupPosition");
+    auto pickPosition   = apvts.getRawParameterValue("pickPosition");
+    auto pickWidth      = apvts.getRawParameterValue("pickWidth");
+    auto pickStrength   = apvts.getRawParameterValue("pickStrength");
+    auto letStringsRing = apvts.getRawParameterValue("letStringsRing");
 
     for (int i = 0; i < synth.getNumVoices(); ++i)
     {
@@ -172,6 +206,11 @@ void GuitarSynthAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, 
         {
             voice->setDecay(decay->load());
             voice->setColor(color->load());
+            voice->setPickupPosition(pickupPosition->load());
+            voice->setPickPosition(pickPosition->load());
+            voice->setPickWidth(pickWidth->load());
+            voice->setPickStrength(pickStrength->load());
+            voice->setLetStringsRing(letStringsRing->load() >= 0.5f);
         }
     }
 

@@ -10,6 +10,22 @@
 
 #include "StringVoice.h"
 
+namespace
+{
+    int positionToPlayableIndex(float normalizedPosition, int numPoints)
+    {
+        // 0.0 = first playable point after silent nut
+        // 1.0 = last playable point before silent bridge
+        const float p = juce::jlimit(0.0f, 1.0f, normalizedPosition);
+
+        return juce::jlimit(
+            1,
+            numPoints - 2,
+            1 + (int)std::round(p * float(numPoints - 3))
+        );
+    }
+}
+
 StringVoice::StringVoice()
 {
 }
@@ -32,9 +48,29 @@ void StringVoice::setColor(float newColor)
     color = juce::jlimit(0.0f, 1.0f, newColor);
 }
 
+void StringVoice::setPickupPosition(float newPickupPosition)
+{
+    pickupPosition = juce::jlimit(0.0f, 1.0f, newPickupPosition);
+}
+
 void StringVoice::setLetStringsRing(bool shouldRing)
 {
     letStringsRing = shouldRing;
+}
+
+void StringVoice::setPickPosition(float newPickPosition)
+{
+    pickPosition = juce::jlimit(0.0f, 1.0f, newPickPosition);
+}
+
+void StringVoice::setPickWidth(float newPickWidth)
+{
+    pickWidth = juce::jlimit(0.0f, 1.0f, newPickWidth);
+}
+
+void StringVoice::setPickStrength(float newPickStrength)
+{
+    pickStrength = juce::jlimit(0.0f, 1.0f, newPickStrength);
 }
 
 void StringVoice::startNote(int midiNoteNumber, float velocityValue,
@@ -87,9 +123,9 @@ void StringVoice::startNote(int midiNoteNumber, float velocityValue,
 
     numPoints = juce::jlimit(minUsefulPoints, maxPoints, maxAllowedPoints);
 
-    // TODO: Later this becomes Pickup Position parameter.
-    float pickupPos = 0.85f; // near bridge
-    pickupIndex = int(pickupPos * (numPoints - 1));
+    // Pickup position is normalized 0-1.
+    // Keep it away from the exact endpoints because fixed endpoints are silent.
+    pickupIndex = positionToPlayableIndex(pickupPosition, numPoints);
 
     // Corrected pitch rate.
     // This is the important fix.
@@ -149,19 +185,55 @@ void StringVoice::renderNextBlock(juce::AudioBuffer<float>& outputBuffer,
 
 void StringVoice::exciteString(float velocityValue)
 {
-    // Temporary excitation, since we are not doing Revitar's pick model yet.
-    // Shape the string into a small triangle-ish displacement.
     // TODO: Make this a Pick Position parameter.
-    const int pluckIndex = juce::jlimit(1, numPoints - 2, numPoints / 4);
+    // 0.0 = near nut
+    // 1.0 = near bridge
+    // Lower values are rounder/hollower, higher values are brighter/twangier.
+
+    // TODO: Make this a Pick Width parameter.
+    // 0.0 = very narrow/hard pick
+    // 1.0 = wider/softer finger-like excitation
+
     // TODO: Make this a Pick Volume / Pick Strength parameter.
-    const float amp = 0.1f * velocityValue; // Small amp value to prevent clicking
+    const float amp = pickStrength * velocityValue;
+
+    const int pluckIndex = positionToPlayableIndex(pickPosition, numPoints);
+
+    // Convert normalized pick width to a radius in string points.
+    // Keep at least 1 so the smoothing math always has an actual region.
+    const int widthRadius = juce::jlimit(
+        1,
+        juce::jmax(1, numPoints / 3),
+        (int)std::round(1.0f + pickWidth * float(numPoints) * 0.15f)
+    );
 
     for (int i = 1; i < numPoints - 1; ++i)
     {
+        // Base triangular displacement, same as before.
+        float triangle = 0.0f;
+
         if (i <= pluckIndex)
-            pos[i] = amp * (float(i) / float(pluckIndex));
+            triangle = float(i) / float(pluckIndex);
         else
-            pos[i] = amp * (float(numPoints - 1 - i) / float(numPoints - 1 - pluckIndex));
+            triangle = float(numPoints - 1 - i) / float(numPoints - 1 - pluckIndex);
+
+        // Width envelope around the pick point.
+        // This spreads the excitation over nearby points instead of creating
+        // one sharp kink. Wider = softer/finger-like, narrower = sharper pick.
+        const int distanceFromPick = std::abs(i - pluckIndex);
+        const float widthEnvelope = juce::jlimit(
+            0.0f,
+            1.0f,
+            1.0f - (float(distanceFromPick) / float(widthRadius))
+        );
+
+        // Blend between a sharp triangular pluck and the softened distributed pluck.
+        // At low pickWidth, mostly triangle.
+        // At high pickWidth, more local smoothing around the pick.
+        const float shaped = triangle * juce::jmap(pickWidth, 0.0f, 1.0f, 1.0f, 0.35f)
+                           + widthEnvelope * juce::jmap(pickWidth, 0.0f, 1.0f, 0.0f, 0.65f);
+
+        pos[i] = amp * shaped;
     }
 
     pos[0] = 0.0f;
@@ -205,50 +277,51 @@ float StringVoice::getNextSample()
         updateString();
 
     // Simple temporary pickup: read the center point and a little of its neighbors.
+    // Map normalized pickup position to a string point every sample.
+    // This lets the pickup position parameter move while the note is ringing.
+    pickupIndex = positionToPlayableIndex(pickupPosition, numPoints);
+
+    // Read the pickup point plus neighbors.
     float out = pos[pickupIndex];
 
-    if (pickupIndex > 0)
-        out += 0.5f * pos[pickupIndex - 1];
-
-    if (pickupIndex < numPoints - 1)
-        out += 0.5f * pos[pickupIndex + 1];
+    out += 0.5f * pos[pickupIndex - 1];
+    out += 0.5f * pos[pickupIndex + 1];
 
     // Neighbor sum can be up to ~2x, so tame it.
     out *= outputGain;
 
     // Fade in to avoid a hard discontinuity when the pluck shape appears.
-        if (fadeInCounter < fadeInSamples)
-        {
-            const float fade = (float)fadeInCounter / (float)juce::jmax(1, fadeInSamples);
-            out *= fade;
-            fadeInCounter++;
-        }
-
-        // Traditional release mode.
-        if (!letStringsRing && isReleasing && damping < 0.95f)
-            clearCurrentNote();
-
-        // Natural ring-out mode.
-        // Do NOT clear on one quiet sample because the waveform crosses zero constantly.
-        // Instead, only clear after the string has stayed very quiet for a while.
-        if (letStringsRing)
-        {
-            float energy = 0.0f;
-
-            for (int i = 1; i < numPoints - 1; ++i)
-                energy += std::abs(pos[i]) + std::abs(vel[i]);
-
-            energy /= (float)juce::jmax(1, numPoints - 2);
-
-            if (energy < 1.0e-5f)
-                quietSamples++;
-            else
-                quietSamples = 0;
-
-            if (quietSamples > (int)(0.25 * sr)) // quiet for 250 ms
-                clearCurrentNote();
-        }
-
-        return out;
+    if (fadeInCounter < fadeInSamples)
+    {
+        const float fade = (float)fadeInCounter / (float)juce::jmax(1, fadeInSamples);
+        out *= fade;
+        fadeInCounter++;
     }
 
+    // Traditional release mode.
+    if (!letStringsRing && isReleasing && damping < 0.95f)
+        clearCurrentNote();
+
+    // Natural ring-out mode.
+    // Do NOT clear on one quiet sample because the waveform crosses zero constantly.
+    // Instead, only clear after the string has stayed very quiet for a while.
+    if (letStringsRing)
+    {
+        float energy = 0.0f;
+
+        for (int i = 1; i < numPoints - 1; ++i)
+            energy += std::abs(pos[i]) + std::abs(vel[i]);
+
+        energy /= (float)juce::jmax(1, numPoints - 2);
+
+        if (energy < 1.0e-5f)
+            quietSamples++;
+        else
+            quietSamples = 0;
+
+        if (quietSamples > (int)(0.25 * sr)) // quiet for 250 ms
+            clearCurrentNote();
+    }
+
+    return out;
+}
