@@ -35,6 +35,27 @@ GuitarSynthAudioProcessor::~GuitarSynthAudioProcessor()
 {
 }
 
+// Visualizer
+void GuitarSynthAudioProcessor::copyActiveStringStates(std::array<std::vector<float>, 6>& destinations) const
+{
+    for (auto& dest : destinations)
+        dest.clear();
+
+    int stringIndex = 0;
+
+    for (int i = 0; i < synth.getNumVoices() && stringIndex < 6; ++i)
+    {
+        if (auto* voice = dynamic_cast<StringVoice*>(synth.getVoice(i)))
+        {
+            if (voice->isVoiceActive())
+            {
+                voice->copyStringState(destinations[(size_t)stringIndex]);
+                ++stringIndex;
+            }
+        }
+    }
+}
+
 // ======PARAMETERS=======
 juce::AudioProcessorValueTreeState::ParameterLayout GuitarSynthAudioProcessor::createParameterLayout()
 {

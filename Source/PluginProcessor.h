@@ -44,6 +44,9 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
     
+    // Visualizer
+    void copyActiveStringStates(std::array<std::vector<float>, 6>& destinations) const;
+    
     // Parameters
     juce::AudioProcessorValueTreeState apvts;
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();

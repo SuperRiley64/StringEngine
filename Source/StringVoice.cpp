@@ -37,6 +37,22 @@ void StringVoice::prepare(double sampleRate, int)
     pos.fill(0.0f);
     vel.fill(0.0f);
 }
+// Visualizer
+void StringVoice::copyStringState(std::vector<float>& destination) const
+{
+    destination.clear();
+    destination.reserve(numPoints);
+
+    for (int i = 0; i < numPoints; ++i)
+        destination.push_back(pos[i]);
+}
+
+int StringVoice::getCurrentNumPoints() const
+{
+    return numPoints;
+}
+
+// Parameters
 
 void StringVoice::setDecay(float newDecay)
 {

@@ -10,12 +10,14 @@
 
 #include <JuceHeader.h>
 #include <memory>
+#include <array>
 #include "PluginProcessor.h"
 
 //==============================================================================
 /**
 */
-class GuitarSynthAudioProcessorEditor  : public juce::AudioProcessorEditor
+class GuitarSynthAudioProcessorEditor  : public juce::AudioProcessorEditor,
+                                         private juce::Timer
 {
 public:
     GuitarSynthAudioProcessorEditor (GuitarSynthAudioProcessor&);
@@ -31,6 +33,15 @@ private:
     GuitarSynthAudioProcessor& audioProcessor;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (GuitarSynthAudioProcessorEditor)
+    
+    // Visualizer
+    void timerCallback() override;
+
+    void drawStringVisualizer(juce::Graphics& g, juce::Rectangle<int> area);
+
+    std::array<std::vector<float>, 6> stringDisplayBuffers;
+
+    juce::Rectangle<int> stringVisualizerArea;
     
     // Parameters
     juce::Slider decaySlider;

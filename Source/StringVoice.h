@@ -33,6 +33,10 @@ public:
     void renderNextBlock(juce::AudioBuffer<float>& outputBuffer,
                          int startSample,
                          int numSamples) override;
+    
+    // Visualizer
+    void copyStringState(std::vector<float>& destination) const;
+    int getCurrentNumPoints() const;
 
     // Parameter Setters
     void setDecay(float newDecay);
