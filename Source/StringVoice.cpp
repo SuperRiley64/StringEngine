@@ -189,7 +189,7 @@ void StringVoice::startNewStringNote(int midiNoteNumber, float velocityValue)
 
     // Color is handled as a tone filter in getNextSample().
 
-    const float sustainDamping = juce::jmap(decay, 0.0f, 1.0f, 0.999f, 0.99995f);
+    const float sustainDamping = juce::jmap(decay, 0.0f, 1.0f, 0.999f, 0.999999f);
 
     // String-dependent damping:
     // lower notes / thicker strings ring longer,
@@ -338,6 +338,24 @@ void StringVoice::updateString()
     {
         const float neighborAverage = 0.5f * (pos[i - 1] + pos[i + 1]);
         pos[i] += dispersion * (neighborAverage - pos[i]);
+    }
+    
+    // Bridge damping / termination losses.
+    // TODO: Make this a Bridge Damping parameter.
+    // Real guitar endpoints are not perfectly lossless. The bridge/nut leak energy,
+    // especially from the points closest to the ends of the string.
+    const float bridgeDamping = 0.9975f;
+
+    if (numPoints > 6)
+    {
+        // Lightly damp the playable points closest to the fixed endpoints.
+        // This keeps the string from feeling too mathematically perfect.
+        vel[1] *= bridgeDamping;
+        vel[numPoints - 2] *= bridgeDamping;
+
+        // Slightly gentler loss one point farther in.
+        vel[2] *= 0.999f;
+        vel[numPoints - 3] *= 0.999f;
     }
 }
 
