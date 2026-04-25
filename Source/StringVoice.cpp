@@ -186,10 +186,31 @@ void StringVoice::startNewStringNote(int midiNoteNumber, float velocityValue)
     rate = juce::jlimit(0.01f, maxStableRate, rate);
 
     // Decay controls broad sustain only.
+
     // Color is handled as a tone filter in getNextSample().
+
     const float sustainDamping = juce::jmap(decay, 0.0f, 1.0f, 0.999f, 0.99995f);
 
-    damping = juce::jlimit(0.90f, 0.99999f, sustainDamping);
+    // String-dependent damping:
+    // lower notes / thicker strings ring longer,
+    // higher notes / thinner strings decay faster.
+    // MIDI 40 = low E on guitar.
+    // MIDI 76 = high E around the 12th fret.
+    const float noteNorm = juce::jlimit(
+        0.0f,
+        1.0f,
+        (float(midiNoteNumber) - 40.0f) / (76.0f - 40.0f)
+    );
+
+    // At high notes, subtract a little more damping.
+
+    // Keep this tiny because damping values near 1.0 are extremely sensitive.
+
+    const float stringLoss = juce::jmap(noteNorm, 0.0f, 1.0f, 0.0f, 0.00045f);
+
+    damping = sustainDamping - stringLoss;
+
+    damping = juce::jlimit(0.90f, 0.99999f, damping);
 
     exciteString(velocityGain);
 }
@@ -272,7 +293,7 @@ void StringVoice::exciteString(float velocityValue)
         const float rawNoise = juce::Random::getSystemRandom().nextFloat() * 2.0f - 1.0f;
 
         // Simple spatial filtering: strongest near the pick, softened by pick width.
-        const float noiseAmount = 0.012f * velocityValue;
+        const float noiseAmount = 0.006f * velocityValue;
         const float pickNoise = rawNoise * noiseAmount * widthEnvelope;
 
         pos[i] = amp * shaped + pickNoise;
