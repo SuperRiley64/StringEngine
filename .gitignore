@@ -1,0 +1,22 @@
+# JUCE generated stuff
+Builds/
+JuceLibraryCode/
+
+# macOS
+.DS_Store
+
+# Xcode junk
+*.xcworkspace
+xcuserdata/
+DerivedData/
+
+# Build outputs
+*.app
+*.component
+*.vst3
+*.au
+*.dylib
+
+# Debug/Release artifacts
+**/Debug/
+**/Release/
