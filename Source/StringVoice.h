@@ -72,6 +72,8 @@ private:
     float outputGain = 1.0f;
 
     bool isReleasing = false;
+    
+    float colorFilterState = 0.0f;
 
     // String Parameters
     float decay = 0.8f;

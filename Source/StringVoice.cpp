@@ -95,6 +95,7 @@ void StringVoice::startNote(int midiNoteNumber, float velocityValue,
     fadeInSamples = juce::jmax(1, (int)(0.003 * sr)); // 3 ms fade-in to reduce note-on clicks
     fadeInCounter = 0;
     quietSamples = 0;
+    colorFilterState = 0.0f;
 
     pos.fill(0.0f);
     vel.fill(0.0f);
@@ -150,13 +151,11 @@ void StringVoice::startNote(int midiNoteNumber, float velocityValue,
 
     rate = juce::jlimit(0.01f, maxStableRate, rate);
 
-    // Decay controls broad sustain.
-    // Color currently makes the string slightly livelier/brighter.
-    const float sustainDamping = juce::jmap(decay, 0.0f, 1.0f, 0.992f, 0.9999f);
-    const float colorDamping   = juce::jmap(color, 0.0f, 1.0f, 0.996f, 1.0f);
+    // Decay controls broad sustain only.
+    // Color is handled as a tone filter in getNextSample().
+    const float sustainDamping = juce::jmap(decay, 0.0f, 1.0f, 0.999f, 0.99995f);
 
-    damping = sustainDamping * colorDamping;
-    damping = juce::jlimit(0.90f, 0.99995f, damping);
+    damping = juce::jlimit(0.90f, 0.99999f, sustainDamping);
 
     exciteString(velocityGain);
 }
@@ -305,6 +304,14 @@ float StringVoice::getNextSample()
 
     // Neighbor sum can be up to ~2x, so tame it.
     out *= outputGain;
+    
+    // Color is a simple one-pole low-pass tone control.
+    // 0.0 = darker / more filtered
+    // 1.0 = brighter / more direct
+    const float toneAmount = juce::jmap(color, 0.0f, 1.0f, 0.04f, 0.95f);
+
+    colorFilterState += toneAmount * (out - colorFilterState);
+    out = colorFilterState;
 
     // Fade in to avoid a hard discontinuity when the pluck shape appears.
     if (fadeInCounter < fadeInSamples)
