@@ -38,11 +38,11 @@
   <EXPORTFORMATS>
     <XCODE_MAC targetFolder="Builds/MacOSX">
       <CONFIGURATIONS>
-        <CONFIGURATION isDebug="1" name="Debug" targetName="StringEngine" vst3BinaryLocation="/Users/rileyknybel/Documents/JUCE Projects/GuitarSynth/Builds/MacOSX/build/Debug"
-                       auBinaryLocation="/Users/rileyknybel/Documents/JUCE Projects/GuitarSynth/Builds/MacOSX/build/Debug"
+        <CONFIGURATION isDebug="1" name="Debug" targetName="StringEngine" vst3BinaryLocation="Builds/MacOSX/build/Debug"
+                       auBinaryLocation="Builds/MacOSX/build/Debug"
                        enablePluginBinaryCopyStep="0" binaryPath="Builds/MacOSX/build/Debug"/>
-        <CONFIGURATION isDebug="0" name="Release" targetName="StringEngine" vst3BinaryLocation="/Users/rileyknybel/Documents/JUCE Projects/GuitarSynth/Builds/MacOSX/build/Release"
-                       auBinaryLocation="/Users/rileyknybel/Documents/JUCE Projects/GuitarSynth/Builds/MacOSX/build/Release"
+        <CONFIGURATION isDebug="0" name="Release" targetName="StringEngine" vst3BinaryLocation="Builds/MacOSX/build/Release"
+                       auBinaryLocation="Builds/MacOSX/build/Release"
                        enablePluginBinaryCopyStep="0" binaryPath="Builds/MacOSX/build/Release"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
