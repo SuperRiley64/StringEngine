@@ -256,8 +256,6 @@ void StringVoice::exciteString(float velocityValue)
             triangle = float(numPoints - 1 - i) / float(numPoints - 1 - pluckIndex);
 
         // Width envelope around the pick point.
-        // This spreads the excitation over nearby points instead of creating
-        // one sharp kink. Wider = softer/finger-like, narrower = sharper pick.
         const int distanceFromPick = std::abs(i - pluckIndex);
         const float widthEnvelope = juce::jlimit(
             0.0f,
@@ -265,13 +263,19 @@ void StringVoice::exciteString(float velocityValue)
             1.0f - (float(distanceFromPick) / float(widthRadius))
         );
 
-        // Blend between a sharp triangular pluck and the softened distributed pluck.
-        // At low pickWidth, mostly triangle.
-        // At high pickWidth, more local smoothing around the pick.
         const float shaped = triangle * juce::jmap(pickWidth, 0.0f, 1.0f, 1.0f, 0.35f)
                            + widthEnvelope * juce::jmap(pickWidth, 0.0f, 1.0f, 0.0f, 0.65f);
 
-        pos[i] = amp * shaped;
+        // Filtered pick noise transient.
+        // TODO: Make this a Pick Noise parameter.
+        // Small amount only — this is the scrape/click of the pick, not the body of the note.
+        const float rawNoise = juce::Random::getSystemRandom().nextFloat() * 2.0f - 1.0f;
+
+        // Simple spatial filtering: strongest near the pick, softened by pick width.
+        const float noiseAmount = 0.012f * velocityValue;
+        const float pickNoise = rawNoise * noiseAmount * widthEnvelope;
+
+        pos[i] = amp * shaped + pickNoise;
     }
 
     pos[0] = 0.0f;
