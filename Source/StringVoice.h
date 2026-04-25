@@ -54,6 +54,7 @@ private:
     float getNextSample();
     void exciteString(float velocity);
     void updateString();
+    void startNewStringNote(int midiNoteNumber, float velocityValue);
 
     double sr = 44100.0;
     int fadeInSamples = 0;
@@ -74,6 +75,13 @@ private:
     bool isReleasing = false;
     
     float colorFilterState = 0.0f;
+    
+    // State variables to fix popping on voice steals
+    bool pendingNewNote = false;
+    int pendingMidiNote = 0;
+    float pendingVelocity = 0.0f;
+    int stealFadeSamples = 0;
+    int stealFadeCounter = 0;
 
     // String Parameters
     float decay = 0.8f;

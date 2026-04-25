@@ -92,6 +92,40 @@ void StringVoice::setPickStrength(float newPickStrength)
 void StringVoice::startNote(int midiNoteNumber, float velocityValue,
                             juce::SynthesiserSound*, int)
 {
+    // Only do the anti-click deferred replacement if this voice is being stolen
+    // while it is still actively ringing.
+    //
+    // If the voice is already in release mode, start the new note immediately.
+    // Otherwise rapid polyphonic playing can feel like notes randomly disappear.
+    if (isVoiceActive() && !isReleasing)
+    {
+        float energy = 0.0f;
+
+        for (int i = 1; i < numPoints - 1; ++i)
+            energy += std::abs(pos[i]) + std::abs(vel[i]);
+
+        energy /= (float)juce::jmax(1, numPoints - 2);
+
+        if (energy > 1.0e-5f)
+        {
+            pendingNewNote = true;
+            pendingMidiNote = midiNoteNumber;
+            pendingVelocity = velocityValue;
+
+            stealFadeSamples = juce::jmax(1, (int)(0.003 * sr)); // 3 ms
+            stealFadeCounter = 0;
+            return;
+        }
+    }
+
+    startNewStringNote(midiNoteNumber, velocityValue);
+}
+
+void StringVoice::startNewStringNote(int midiNoteNumber, float velocityValue)
+{
+    pendingNewNote = false;
+    stealFadeCounter = 0;
+    
     fadeInSamples = juce::jmax(1, (int)(0.003 * sr)); // 3 ms fade-in to reduce note-on clicks
     fadeInCounter = 0;
     quietSamples = 0;
@@ -164,22 +198,11 @@ void StringVoice::stopNote(float, bool allowTailOff)
 {
     if (letStringsRing)
     {
-        // Guitar-style behavior:
-        // ignore note-off and let the simulated string decay naturally.
-        // Do NOT call clearCurrentNote() here.
         isReleasing = false;
         return;
     }
-
-    if (allowTailOff)
-    {
-        isReleasing = true;
-    }
-    else
-    {
-        isReleasing = false;
-        clearCurrentNote();
-    }
+    // Avoid instant hard clear when possible.
+    isReleasing = true;
 }
 
 void StringVoice::renderNextBlock(juce::AudioBuffer<float>& outputBuffer,
@@ -285,6 +308,28 @@ float StringVoice::getNextSample()
     // This is okay for now, though later a separate releaseGain would be cleaner.
     if (isReleasing)
         damping *= 0.99995f;
+    
+    if (pendingNewNote)
+    {
+        const float fade = 1.0f - ((float)stealFadeCounter / (float)stealFadeSamples);
+
+        for (int i = 0; i < numPoints; ++i)
+        {
+            pos[i] *= fade;
+            vel[i] *= fade;
+        }
+
+        stealFadeCounter++;
+
+        if (stealFadeCounter >= stealFadeSamples)
+        {
+            pendingNewNote = false;
+            pos.fill(0.0f);
+            vel.fill(0.0f);
+
+            startNewStringNote(pendingMidiNote, pendingVelocity);
+        }
+    }
 
     // High notes may run the string simulation multiple times per output sample.
     // This improves tuning/stability without needing unusably tiny strings.
