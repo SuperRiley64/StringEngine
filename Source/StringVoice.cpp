@@ -325,6 +325,20 @@ void StringVoice::updateString()
 
     pos[numPoints - 1] = 0.0f;
     vel[numPoints - 1] = 0.0f;
+    
+    // Subtle dispersion / phase smear.
+    // TODO: Make this a Dispersion parameter.
+    // Keep this extremely restrained. Too much turns metallic / drum-like.
+    // This gently shares a tiny amount of displacement with neighboring points
+    // after the main spring update, which adds a little string complexity without
+    // the aggressive steel-drum behavior from the stiffness term.
+    const float dispersion = 0.0015f;
+
+    for (int i = 2; i < numPoints - 2; ++i)
+    {
+        const float neighborAverage = 0.5f * (pos[i - 1] + pos[i + 1]);
+        pos[i] += dispersion * (neighborAverage - pos[i]);
+    }
 }
 
 float StringVoice::getNextSample()
