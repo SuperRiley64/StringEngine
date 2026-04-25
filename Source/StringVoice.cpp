@@ -268,7 +268,7 @@ void StringVoice::exciteString(float velocityValue)
 
     for (int i = 1; i < numPoints - 1; ++i)
     {
-        // Base triangular displacement, same as before.
+        // ====== Base triangular displacement ========================================
         float triangle = 0.0f;
 
         if (i <= pluckIndex)
@@ -286,8 +286,47 @@ void StringVoice::exciteString(float velocityValue)
 
         const float shaped = triangle * juce::jmap(pickWidth, 0.0f, 1.0f, 1.0f, 0.35f)
                            + widthEnvelope * juce::jmap(pickWidth, 0.0f, 1.0f, 0.0f, 0.65f);
+        
+        // ======== Harmonic pluck enrichment ======================================
+        // TODO: Make this a Harmonic Excitation parameter.
+        //
+        // This is NOT artificial harmonics or pinch harmonics.
+        // It biases the initial pluck shape to contain extra upper-mode content,
+        // like a real pick does.
 
-        // Filtered pick noise transient.
+        // Distance from the middle of the string.
+        // 0.0 = middle, 1.0 = near nut/bridge.
+        // Picking near the bridge or nut naturally excites more upper modes.
+        const float distanceFromMiddle = std::abs(pickPosition - 0.5f) * 2.0f;
+
+        // Narrower picks also excite more upper modes.
+        // Wider/finger-like plucks are smoother.
+        const float narrowPickAmount = 1.0f - pickWidth;
+
+        // Near bridge/nut + narrow pick = brighter harmonic excitation.
+        const float harmonicBlend =
+            juce::jlimit(0.02f, 0.28f,
+                         0.04f + 0.20f * distanceFromMiddle + 0.08f * narrowPickAmount);
+
+        // Add a little 2nd, 3rd, and 4th mode into the initial displacement.
+        const float x = float(i) / float(numPoints - 1);
+
+        const float mode2 = std::sin(2.0f * juce::MathConstants<float>::pi * x);
+        const float mode3 = std::sin(3.0f * juce::MathConstants<float>::pi * x);
+        const float mode4 = std::sin(4.0f * juce::MathConstants<float>::pi * x);
+
+        // Bridge/nut picking favors higher modes a little more.
+        const float upperModeBias = distanceFromMiddle;
+
+        const float harmonicShape =
+            shaped
+            + harmonicBlend * (
+                  0.55f * mode2
+                + 0.30f * mode3
+                + (0.15f + 0.20f * upperModeBias) * mode4
+              );
+
+        // ===== Filtered pick noise transient.============================================
         // TODO: Make this a Pick Noise parameter.
         // Small amount only — this is the scrape/click of the pick, not the body of the note.
         const float rawNoise = juce::Random::getSystemRandom().nextFloat() * 2.0f - 1.0f;
@@ -296,7 +335,7 @@ void StringVoice::exciteString(float velocityValue)
         const float noiseAmount = 0.006f * velocityValue;
         const float pickNoise = rawNoise * noiseAmount * widthEnvelope;
 
-        pos[i] = amp * shaped + pickNoise;
+        pos[i] = amp * harmonicShape + pickNoise;
     }
 
     pos[0] = 0.0f;
