@@ -16,50 +16,82 @@ GuitarSynthAudioProcessorEditor::GuitarSynthAudioProcessorEditor (GuitarSynthAud
     auto setupLabel = [this] (juce::Label& label, const juce::String& text)
     {
         label.setText(text, juce::dontSendNotification);
-        label.setJustificationType(juce::Justification::centredLeft);
+        label.setJustificationType(juce::Justification::centred);
         addAndMakeVisible(label);
     };
 
-    auto setupSlider = [this] (juce::Slider& slider)
+    auto setupFretSlider = [this] (juce::Slider& slider)
     {
         slider.setSliderStyle(juce::Slider::LinearHorizontal);
-        slider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 80, 20);
+        slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 70, 20);
         slider.setRange(0.0, 1.0, 0.001);
         addAndMakeVisible(slider);
     };
 
-    setupLabel(decayLabel, "Decay");
-    setupSlider(decaySlider);
+    auto setupKnob = [this] (juce::Slider& slider)
+    {
+        slider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
+        slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 70, 20);
+        slider.setRange(0.0, 1.0, 0.001);
+        addAndMakeVisible(slider);
+    };
 
-    setupLabel(colorLabel, "Color");
-    setupSlider(colorSlider);
+    // Labels/sliders
+    setupLabel(pickupPositionLabel, "Pickup");
+    setupFretSlider(pickupPositionSlider);
 
-    setupLabel(pickupPositionLabel, "Pickup Position");
-    setupSlider(pickupPositionSlider);
+    setupLabel(pickPositionLabel, "Pick");
+    setupFretSlider(pickPositionSlider);
 
-    setupLabel(pickPositionLabel, "Pick Position");
-    setupSlider(pickPositionSlider);
-
-    setupLabel(pickWidthLabel, "Pick Width");
-    setupSlider(pickWidthSlider);
+    setupLabel(palmPositionLabel, "Palm");
+    setupFretSlider(palmPositionSlider);
 
     setupLabel(pickStrengthLabel, "Pick Strength");
-    setupSlider(pickStrengthSlider);
+    setupKnob(pickStrengthSlider);
 
-    setupLabel(letStringsRingLabel, "Let Strings Ring");
-    letStringsRingButton.setButtonText("");
+    setupLabel(pickWidthLabel, "Pick Width");
+    setupKnob(pickWidthSlider);
+
+    setupLabel(harmonicsLabel, "Harmonics");
+    setupKnob(harmonicsSlider);
+
+    setupLabel(pickNoiseLabel, "Pick Noise");
+    setupKnob(pickNoiseSlider);
+
+    setupLabel(colorLabel, "Tone");
+    setupKnob(colorSlider);
+
+    setupLabel(bridgeDampingLabel, "Bridge Damp");
+    setupKnob(bridgeDampingSlider);
+
+    setupLabel(palmDampingLabel, "Palm Damp");
+    setupKnob(palmDampingSlider);
+
+    setupLabel(dispersionLabel, "Dispersion");
+    setupKnob(dispersionSlider);
+
+    setupLabel(letStringsRingLabel, "Let Ring");
     addAndMakeVisible(letStringsRingButton);
 
-    decayAttachment = std::make_unique<SliderAttachment>(audioProcessor.apvts, "decay", decaySlider);
-    colorAttachment = std::make_unique<SliderAttachment>(audioProcessor.apvts, "color", colorSlider);
+    // Attachments
     pickupPositionAttachment = std::make_unique<SliderAttachment>(audioProcessor.apvts, "pickupPosition", pickupPositionSlider);
-    pickPositionAttachment = std::make_unique<SliderAttachment>(audioProcessor.apvts, "pickPosition", pickPositionSlider);
-    pickWidthAttachment = std::make_unique<SliderAttachment>(audioProcessor.apvts, "pickWidth", pickWidthSlider);
-    pickStrengthAttachment = std::make_unique<SliderAttachment>(audioProcessor.apvts, "pickStrength", pickStrengthSlider);
+    pickPositionAttachment   = std::make_unique<SliderAttachment>(audioProcessor.apvts, "pickPosition", pickPositionSlider);
+    palmPositionAttachment   = std::make_unique<SliderAttachment>(audioProcessor.apvts, "palmPosition", palmPositionSlider);
+
+    pickStrengthAttachment   = std::make_unique<SliderAttachment>(audioProcessor.apvts, "pickStrength", pickStrengthSlider);
+    pickWidthAttachment      = std::make_unique<SliderAttachment>(audioProcessor.apvts, "pickWidth", pickWidthSlider);
+    harmonicsAttachment      = std::make_unique<SliderAttachment>(audioProcessor.apvts, "harmonics", harmonicsSlider);
+    pickNoiseAttachment      = std::make_unique<SliderAttachment>(audioProcessor.apvts, "pickNoise", pickNoiseSlider);
+
+    colorAttachment          = std::make_unique<SliderAttachment>(audioProcessor.apvts, "color", colorSlider);
+    bridgeDampingAttachment  = std::make_unique<SliderAttachment>(audioProcessor.apvts, "bridgeDamping", bridgeDampingSlider);
+    palmDampingAttachment    = std::make_unique<SliderAttachment>(audioProcessor.apvts, "palmDamping", palmDampingSlider);
+    dispersionAttachment     = std::make_unique<SliderAttachment>(audioProcessor.apvts, "dispersion", dispersionSlider);
+
     letStringsRingAttachment = std::make_unique<ButtonAttachment>(audioProcessor.apvts, "letStringsRing", letStringsRingButton);
 
-    startTimerHz(30); // For Visualizer
-    setSize(620, 620);
+    startTimerHz(30);
+    setSize(1000, 500);
 }
 
 GuitarSynthAudioProcessorEditor::~GuitarSynthAudioProcessorEditor()
@@ -88,31 +120,51 @@ void GuitarSynthAudioProcessorEditor::paint (juce::Graphics& g)
 
 void GuitarSynthAudioProcessorEditor::resized()
 {
-    auto area = getLocalBounds().reduced(12);
-    area.removeFromTop(32);
+    auto area = getLocalBounds().reduced(16);
+    area.removeFromTop(28);
 
-    stringVisualizerArea = area.removeFromTop(180);
-    area.removeFromTop(14);
+    auto top = area.removeFromTop(260);
 
-    auto layoutSliderRow = [&area] (juce::Label& label, juce::Slider& slider)
+    auto leftHalf = top.removeFromLeft(area.getWidth() / 2);
+    stringVisualizerArea = leftHalf.reduced(4);
+
+    auto fretRow = area.removeFromTop(80);
+    auto sliderWidth = fretRow.getWidth() / 3;
+
+    auto layoutFretSlider = [&fretRow, sliderWidth] (juce::Label& label, juce::Slider& slider)
     {
-        auto row = area.removeFromTop(36);
-        label.setBounds(row.removeFromLeft(130));
-        slider.setBounds(row);
-        area.removeFromTop(6);
+        auto cell = fretRow.removeFromLeft(sliderWidth).reduced(8, 0);
+        label.setBounds(cell.removeFromTop(20));
+        slider.setBounds(cell);
     };
-    
-    layoutSliderRow(pickupPositionLabel, pickupPositionSlider);
-    layoutSliderRow(pickPositionLabel, pickPositionSlider);
-    layoutSliderRow(pickWidthLabel, pickWidthSlider);
-    layoutSliderRow(pickStrengthLabel, pickStrengthSlider);
-    
-    layoutSliderRow(decayLabel, decaySlider);
-    layoutSliderRow(colorLabel, colorSlider);
 
-    auto row = area.removeFromTop(36);
-    letStringsRingLabel.setBounds(row.removeFromLeft(130));
-    letStringsRingButton.setBounds(row.removeFromLeft(30));
+    layoutFretSlider(pickupPositionLabel, pickupPositionSlider);
+    layoutFretSlider(pickPositionLabel, pickPositionSlider);
+    layoutFretSlider(palmPositionLabel, palmPositionSlider);
+
+    area.removeFromTop(12);
+
+    auto knobRow = area.removeFromTop(130);
+
+    auto layoutKnob = [&knobRow] (juce::Label& label, juce::Slider& slider)
+    {
+        auto cell = knobRow.removeFromLeft(90).reduced(4);
+        label.setBounds(cell.removeFromTop(22));
+        slider.setBounds(cell);
+    };
+
+    layoutKnob(pickStrengthLabel, pickStrengthSlider);
+    layoutKnob(pickWidthLabel, pickWidthSlider);
+    layoutKnob(harmonicsLabel, harmonicsSlider);
+    layoutKnob(pickNoiseLabel, pickNoiseSlider);
+    layoutKnob(colorLabel, colorSlider);
+    layoutKnob(bridgeDampingLabel, bridgeDampingSlider);
+    layoutKnob(palmDampingLabel, palmDampingSlider);
+    layoutKnob(dispersionLabel, dispersionSlider);
+
+    auto buttonCell = knobRow.removeFromLeft(90).reduced(4);
+    letStringsRingLabel.setBounds(buttonCell.removeFromTop(22));
+    letStringsRingButton.setBounds(buttonCell.withSizeKeepingCentre(30, 30));
 }
 
 void GuitarSynthAudioProcessorEditor::drawStringVisualizer(juce::Graphics& g, juce::Rectangle<int> area)

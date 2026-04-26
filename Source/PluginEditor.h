@@ -44,32 +44,55 @@ private:
     juce::Rectangle<int> stringVisualizerArea;
     
     // Parameters
-    juce::Slider decaySlider;
-    juce::Slider colorSlider;
+    // Fretboard sliders
     juce::Slider pickupPositionSlider;
     juce::Slider pickPositionSlider;
-    juce::Slider pickWidthSlider;
+    juce::Slider palmPositionSlider;
+
+    juce::Label pickupPositionLabel;
+    juce::Label pickPositionLabel;
+    juce::Label palmPositionLabel;
+
+    // Knobs
     juce::Slider pickStrengthSlider;
+    juce::Slider pickWidthSlider;
+    juce::Slider harmonicsSlider;
+    juce::Slider pickNoiseSlider;
+
+    juce::Slider colorSlider;
+    juce::Slider bridgeDampingSlider;
+    juce::Slider palmDampingSlider;
+    juce::Slider dispersionSlider;
 
     juce::ToggleButton letStringsRingButton;
 
-    juce::Label decayLabel;
-    juce::Label colorLabel;
-    juce::Label pickupPositionLabel;
-    juce::Label pickPositionLabel;
-    juce::Label pickWidthLabel;
     juce::Label pickStrengthLabel;
+    juce::Label pickWidthLabel;
+    juce::Label harmonicsLabel;
+    juce::Label pickNoiseLabel;
+
+    juce::Label colorLabel;
+    juce::Label bridgeDampingLabel;
+    juce::Label palmDampingLabel;
+    juce::Label dispersionLabel;
     juce::Label letStringsRingLabel;
 
     using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
     using ButtonAttachment = juce::AudioProcessorValueTreeState::ButtonAttachment;
 
-    std::unique_ptr<SliderAttachment> decayAttachment;
-    std::unique_ptr<SliderAttachment> colorAttachment;
     std::unique_ptr<SliderAttachment> pickupPositionAttachment;
     std::unique_ptr<SliderAttachment> pickPositionAttachment;
-    std::unique_ptr<SliderAttachment> pickWidthAttachment;
+    std::unique_ptr<SliderAttachment> palmPositionAttachment;
+
     std::unique_ptr<SliderAttachment> pickStrengthAttachment;
+    std::unique_ptr<SliderAttachment> pickWidthAttachment;
+    std::unique_ptr<SliderAttachment> harmonicsAttachment;
+    std::unique_ptr<SliderAttachment> pickNoiseAttachment;
+
+    std::unique_ptr<SliderAttachment> colorAttachment;
+    std::unique_ptr<SliderAttachment> bridgeDampingAttachment;
+    std::unique_ptr<SliderAttachment> palmDampingAttachment;
+    std::unique_ptr<SliderAttachment> dispersionAttachment;
 
     std::unique_ptr<ButtonAttachment> letStringsRingAttachment;
 };

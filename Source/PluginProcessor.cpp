@@ -61,46 +61,26 @@ juce::AudioProcessorValueTreeState::ParameterLayout GuitarSynthAudioProcessor::c
 {
     std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
 
-    params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "decay",
-        "Decay",
-        juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f),
-        0.8f));
+    // Fretboard sliders
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("pickupPosition", "Pickup Position", 0.0f, 1.0f, 0.85f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("pickPosition",   "Pick Position",   0.0f, 1.0f, 0.25f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("palmPosition",   "Palm Position",   0.0f, 1.0f, 0.88f));
 
-    params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "color",
-        "Color",
-        juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f),
-        0.5f));
+    // Picking
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("pickStrength",   "Pick Strength",   0.0f, 1.0f, 0.10f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("pickWidth",      "Pick Width",      0.0f, 1.0f, 0.25f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("harmonics",      "Harmonics",       0.0f, 1.0f, 0.18f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("pickNoise",      "Pick Noise",      0.0f, 1.0f, 0.25f));
 
-    params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "pickupPosition",
-        "Pickup Position",
-        juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f),
-        0.85f));
+    // Damping
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("color",          "Tone",            0.0f, 1.0f, 0.5f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("bridgeDamping",  "Bridge Damping",  0.0f, 1.0f, 0.05f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("palmDamping",    "Palm Damping",    0.0f, 1.0f, 0.0f));
 
-    params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "pickPosition",
-        "Pick Position",
-        juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f),
-        0.25f));
+    params.push_back(std::make_unique<juce::AudioParameterBool>("letStringsRing",  "Let Strings Ring", true));
 
-    params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "pickWidth",
-        "Pick Width",
-        juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f),
-        0.25f));
-
-    params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "pickStrength",
-        "Pick Strength",
-        juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f),
-        0.1f));
-
-    params.push_back(std::make_unique<juce::AudioParameterBool>(
-        "letStringsRing",
-        "Let Strings Ring",
-        true));
+    // Strings
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("dispersion",     "Dispersion",      0.0f, 1.0f, 0.05f));
 
     return { params.begin(), params.end() };
 }
@@ -206,36 +186,52 @@ bool GuitarSynthAudioProcessor::isBusesLayoutSupported (const BusesLayout& layou
 }
 #endif
 
-void GuitarSynthAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
+void GuitarSynthAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
+                                              juce::MidiBuffer& midiMessages)
 {
     juce::ScopedNoDenormals noDenormals;
 
     buffer.clear();
-    
-    // Set Parameters
-    auto decay          = apvts.getRawParameterValue("decay");
-    auto color          = apvts.getRawParameterValue("color");
+
     auto pickupPosition = apvts.getRawParameterValue("pickupPosition");
     auto pickPosition   = apvts.getRawParameterValue("pickPosition");
-    auto pickWidth      = apvts.getRawParameterValue("pickWidth");
+    auto palmPosition   = apvts.getRawParameterValue("palmPosition");
+
     auto pickStrength   = apvts.getRawParameterValue("pickStrength");
+    auto pickWidth      = apvts.getRawParameterValue("pickWidth");
+    auto harmonics      = apvts.getRawParameterValue("harmonics");
+    auto pickNoise      = apvts.getRawParameterValue("pickNoise");
+
+    auto color          = apvts.getRawParameterValue("color");
+    auto bridgeDamping  = apvts.getRawParameterValue("bridgeDamping");
+    auto palmDamping    = apvts.getRawParameterValue("palmDamping");
     auto letStringsRing = apvts.getRawParameterValue("letStringsRing");
+
+    auto dispersion     = apvts.getRawParameterValue("dispersion");
 
     for (int i = 0; i < synth.getNumVoices(); ++i)
     {
         if (auto* voice = dynamic_cast<StringVoice*>(synth.getVoice(i)))
         {
-            voice->setDecay(decay->load());
-            voice->setColor(color->load());
             voice->setPickupPosition(pickupPosition->load());
             voice->setPickPosition(pickPosition->load());
-            voice->setPickWidth(pickWidth->load());
+            voice->setPalmPosition(palmPosition->load());
+
             voice->setPickStrength(pickStrength->load());
+            voice->setPickWidth(pickWidth->load());
+            voice->setHarmonics(harmonics->load());
+            voice->setPickNoiseAmount(pickNoise->load());
+
+            voice->setColor(color->load());
+            voice->setBridgeDamping(bridgeDamping->load());
+            voice->setPalmDamping(palmDamping->load());
             voice->setLetStringsRing(letStringsRing->load() >= 0.5f);
+
+            voice->setDispersion(dispersion->load());
         }
     }
 
-    synth.renderNextBlock (buffer, midiMessages, 0, buffer.getNumSamples());
+    synth.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
 }
 
 //==============================================================================

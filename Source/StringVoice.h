@@ -47,6 +47,13 @@ public:
     void setPickPosition(float newPickPosition);
     void setPickWidth(float newPickWidth);
     void setPickStrength(float newPickStrength);
+    
+    void setPalmPosition(float newPalmPosition);
+    void setPalmDamping(float newPalmDamping);
+    void setBridgeDamping(float newBridgeDamping);
+    void setDispersion(float newDispersion);
+    void setHarmonics(float newHarmonics);
+    void setPickNoiseAmount(float newPickNoiseAmount);
 
 private:
     static constexpr int maxPoints = 256;
@@ -73,6 +80,7 @@ private:
     float outputGain = 1.0f;
 
     bool isReleasing = false;
+    float releaseGain = 1.0f;
     
     float colorFilterState = 0.0f;
     
@@ -93,6 +101,16 @@ private:
     float pickPosition = 0.25f;
     float pickWidth = 0.25f;
     float pickStrength = 0.1f;
+    float harmonics = 0.18f;
+    float pickNoiseAmount = 0.25f;
+    
+    // Damping Parameters
+    float palmPosition = 0.85f; // 0=nut, 1=bridge (usually near bridge)
+    float palmDamping = 0.0f;   // 0=no mute, 1=heavy mute
+    float bridgeDamping = 0.05f;
+    
+    // String Parameters
+    float dispersion = 0.05f;
     
     // Counts how long the string has been quiet before clearing the voice.
     int quietSamples = 0;
