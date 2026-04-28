@@ -2,6 +2,11 @@
 
 A JUCE VST3 recreation of Revitar2. Based on the DSP code of Revitar2 maintained by SwooshyCueb (https://github.com/SwooshyCueb/Revitar2/tree/master)
 
-Demo: [StringEngine-DogSong.mp3](https://github.com/user-attachments/files/27090547/StringEngine-DogSong.mp3)
+Far from done, still in active development!
 
-<img width="619" height="618" alt="image" src="https://github.com/user-attachments/assets/189e9d65-2cfc-4ee7-96ac-da43fed3cd0d" />
+Demo: [StringEngine-DogSong4.mp3](https://github.com/user-attachments/files/27147945/StringEngine-DogSong4.mp3)
+
+
+
+<img width="996" height="496" alt="image" src="https://github.com/user-attachments/assets/37815da1-b1e8-40dd-a2bf-76e19f07859a" />
+
