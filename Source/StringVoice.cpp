@@ -272,14 +272,18 @@ void StringVoice::updateString()
     pos[numPoints - 1] = 0.0f;
     vel[numPoints - 1] = 0.0f;
 
-    // Dispersion model. Kept bounded because this can explode quickly.
-    const float dispersionAmount =
-        juce::jmap(std::pow(dispersion, 0.65f), 0.0f, 1.0f, 0.0f, 0.0035f);
+    // Jangle / pseudo-dispersion model.
+    // This adds a tiny amount of high-frequency motion instead of smoothing it away.
+    // Keep subtle; too much gets unstable fast.
+    const float jangleAmount =
+        juce::jmap(std::pow(dispersion, 0.7f), 0.0f, 1.0f, 0.0f, 0.02f);
 
     for (int i = 2; i < numPoints - 2; ++i)
     {
-        const float neighborAverage = 0.5f * (pos[i - 1] + pos[i + 1]);
-        pos[i] += dispersionAmount * (neighborAverage - pos[i]);
+        const float highMode =
+            pos[i - 1] - 2.0f * pos[i] + pos[i + 1];
+
+        vel[i] -= jangleAmount * highMode;
     }
 
     // Palm muting model.
@@ -306,7 +310,7 @@ void StringVoice::updateString()
 
     // Bridge/nut damping model.
     const float bridgeLoss =
-        juce::jmap(std::pow(bridgeDamping, 0.75f), 0.0f, 1.0f, 0.99998f, 0.9f);
+        juce::jmap(std::pow(bridgeDamping, 0.75f), 0.0f, 1.0f, 1.0f, 0.9f);
 
     if (numPoints > 6)
     {

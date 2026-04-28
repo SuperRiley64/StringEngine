@@ -74,7 +74,7 @@ private:
     int subSteps = 1; // For really high (tiny string) note oversampling
 
     float rate = 0.5f;
-    float damping = 0.9995f;
+    float damping = 0.9999f;
 
     float velocityGain = 0.0f;
     float outputGain = 1.0f;
