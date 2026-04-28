@@ -39,11 +39,11 @@
     <XCODE_MAC targetFolder="Builds/MacOSX">
       <CONFIGURATIONS>
         <CONFIGURATION isDebug="1" name="Debug" targetName="StringEngine" vst3BinaryLocation="Builds/MacOSX/build/Debug"
-                       auBinaryLocation="Builds/MacOSX/build/Debug"
-                       enablePluginBinaryCopyStep="0" binaryPath="Builds/MacOSX/build/Debug"/>
+                       auBinaryLocation="Builds/MacOSX/build/Debug" enablePluginBinaryCopyStep="0"
+                       binaryPath="Builds/MacOSX/build/Debug"/>
         <CONFIGURATION isDebug="0" name="Release" targetName="StringEngine" vst3BinaryLocation="Builds/MacOSX/build/Release"
-                       auBinaryLocation="Builds/MacOSX/build/Release"
-                       enablePluginBinaryCopyStep="0" binaryPath="Builds/MacOSX/build/Release"/>
+                       auBinaryLocation="Builds/MacOSX/build/Release" enablePluginBinaryCopyStep="0"
+                       binaryPath="Builds/MacOSX/build/Release"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_audio_basics" path="../../JUCE/modules"/>
@@ -62,5 +62,27 @@
         <MODULEPATH id="juce_dsp" path="../../JUCE/modules"/>
       </MODULEPATHS>
     </XCODE_MAC>
+    <VS2022 targetFolder="Builds/VisualStudio2022">
+      <CONFIGURATIONS>
+        <CONFIGURATION isDebug="1" name="Debug"/>
+        <CONFIGURATION isDebug="0" name="Release"/>
+      </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_audio_basics" path="/Users/rileyknybel/Documents/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="/Users/rileyknybel/Documents/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="/Users/rileyknybel/Documents/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_plugin_client" path="/Users/rileyknybel/Documents/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="/Users/rileyknybel/Documents/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors_headless" path="/Users/rileyknybel/Documents/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_utils" path="/Users/rileyknybel/Documents/JUCE/modules"/>
+        <MODULEPATH id="juce_core" path="/Users/rileyknybel/Documents/JUCE/modules"/>
+        <MODULEPATH id="juce_data_structures" path="/Users/rileyknybel/Documents/JUCE/modules"/>
+        <MODULEPATH id="juce_dsp" path="/Users/rileyknybel/Documents/JUCE/modules"/>
+        <MODULEPATH id="juce_events" path="/Users/rileyknybel/Documents/JUCE/modules"/>
+        <MODULEPATH id="juce_graphics" path="/Users/rileyknybel/Documents/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="/Users/rileyknybel/Documents/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="/Users/rileyknybel/Documents/JUCE/modules"/>
+      </MODULEPATHS>
+    </VS2022>
   </EXPORTFORMATS>
 </JUCERPROJECT>
