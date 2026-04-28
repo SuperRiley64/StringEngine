@@ -17,36 +17,43 @@ GuitarSynthAudioProcessorEditor::GuitarSynthAudioProcessorEditor (GuitarSynthAud
     {
         label.setText(text, juce::dontSendNotification);
         label.setJustificationType(juce::Justification::centred);
+        label.setFont(juce::FontOptions(11.0f));
         addAndMakeVisible(label);
     };
 
     auto setupFretSlider = [this] (juce::Slider& slider)
     {
         slider.setSliderStyle(juce::Slider::LinearHorizontal);
-        slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 70, 20);
+        slider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
         slider.setRange(0.0, 1.0, 0.001);
+        slider.setPopupDisplayEnabled(true, false, this);
         addAndMakeVisible(slider);
     };
 
     auto setupKnob = [this] (juce::Slider& slider)
     {
         slider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
-        slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 70, 20);
+        slider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
         slider.setRange(0.0, 1.0, 0.001);
+        slider.setPopupDisplayEnabled(true, false, this);
+        slider.setRotaryParameters(
+            juce::MathConstants<float>::pi * 1.2f,
+            juce::MathConstants<float>::pi * 2.8f,
+            true);
+
         addAndMakeVisible(slider);
     };
 
-    // Labels/sliders
-    setupLabel(pickupPositionLabel, "Pickup");
+    setupLabel(pickupPositionLabel, "Pickup Position");
     setupFretSlider(pickupPositionSlider);
 
-    setupLabel(pickPositionLabel, "Pick");
+    setupLabel(pickPositionLabel, "Pick Position");
     setupFretSlider(pickPositionSlider);
 
-    setupLabel(palmPositionLabel, "Palm");
+    setupLabel(palmPositionLabel, "Palm Position");
     setupFretSlider(palmPositionSlider);
 
-    setupLabel(pickStrengthLabel, "Pick Strength");
+    setupLabel(pickStrengthLabel, "Pick Amp");
     setupKnob(pickStrengthSlider);
 
     setupLabel(pickWidthLabel, "Pick Width");
@@ -71,9 +78,9 @@ GuitarSynthAudioProcessorEditor::GuitarSynthAudioProcessorEditor (GuitarSynthAud
     setupKnob(dispersionSlider);
 
     setupLabel(letStringsRingLabel, "Let Ring");
+    letStringsRingButton.setButtonText("");
     addAndMakeVisible(letStringsRingButton);
 
-    // Attachments
     pickupPositionAttachment = std::make_unique<SliderAttachment>(audioProcessor.apvts, "pickupPosition", pickupPositionSlider);
     pickPositionAttachment   = std::make_unique<SliderAttachment>(audioProcessor.apvts, "pickPosition", pickPositionSlider);
     palmPositionAttachment   = std::make_unique<SliderAttachment>(audioProcessor.apvts, "palmPosition", palmPositionSlider);
@@ -99,7 +106,6 @@ GuitarSynthAudioProcessorEditor::~GuitarSynthAudioProcessorEditor()
 }
 
 //==============================================================================
-
 void GuitarSynthAudioProcessorEditor::timerCallback()
 {
     audioProcessor.copyActiveStringStates(stringDisplayBuffers);
@@ -111,7 +117,7 @@ void GuitarSynthAudioProcessorEditor::paint (juce::Graphics& g)
     g.fillAll(getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId));
 
     g.setColour(juce::Colours::white);
-    g.setFont(15.0f);
+    g.setFont(juce::FontOptions(15.0f));
     g.drawFittedText("String Engine", getLocalBounds().removeFromTop(30),
                      juce::Justification::centred, 1);
 
@@ -129,12 +135,15 @@ void GuitarSynthAudioProcessorEditor::resized()
     stringVisualizerArea = leftHalf.reduced(4);
 
     auto fretRow = area.removeFromTop(80);
-    auto sliderWidth = fretRow.getWidth() / 3;
+    const auto sliderWidth = fretRow.getWidth() / 3;
 
     auto layoutFretSlider = [&fretRow, sliderWidth] (juce::Label& label, juce::Slider& slider)
     {
         auto cell = fretRow.removeFromLeft(sliderWidth).reduced(8, 0);
+
+        label.setJustificationType(juce::Justification::centred);
         label.setBounds(cell.removeFromTop(20));
+
         slider.setBounds(cell);
     };
 
@@ -144,13 +153,18 @@ void GuitarSynthAudioProcessorEditor::resized()
 
     area.removeFromTop(12);
 
-    auto knobRow = area.removeFromTop(130);
+    auto knobRow = area.removeFromTop(112);
 
     auto layoutKnob = [&knobRow] (juce::Label& label, juce::Slider& slider)
     {
-        auto cell = knobRow.removeFromLeft(90).reduced(4);
-        label.setBounds(cell.removeFromTop(22));
-        slider.setBounds(cell);
+        auto cell = knobRow.removeFromLeft(86).reduced(4);
+
+        auto labelArea = cell.removeFromBottom(18);
+
+        slider.setBounds(cell.reduced(2));
+
+        label.setJustificationType(juce::Justification::centred);
+        label.setBounds(labelArea);
     };
 
     layoutKnob(pickStrengthLabel, pickStrengthSlider);
@@ -162,9 +176,13 @@ void GuitarSynthAudioProcessorEditor::resized()
     layoutKnob(palmDampingLabel, palmDampingSlider);
     layoutKnob(dispersionLabel, dispersionSlider);
 
-    auto buttonCell = knobRow.removeFromLeft(90).reduced(4);
-    letStringsRingLabel.setBounds(buttonCell.removeFromTop(22));
+    auto buttonCell = knobRow.removeFromLeft(86).reduced(4);
+    auto buttonLabelArea = buttonCell.removeFromBottom(18);
+
     letStringsRingButton.setBounds(buttonCell.withSizeKeepingCentre(30, 30));
+
+    letStringsRingLabel.setJustificationType(juce::Justification::centred);
+    letStringsRingLabel.setBounds(buttonLabelArea);
 }
 
 void GuitarSynthAudioProcessorEditor::drawStringVisualizer(juce::Graphics& g, juce::Rectangle<int> area)
@@ -179,10 +197,12 @@ void GuitarSynthAudioProcessorEditor::drawStringVisualizer(juce::Graphics& g, ju
 
     const auto* pickupParam = audioProcessor.apvts.getRawParameterValue("pickupPosition");
     const auto* pickParam   = audioProcessor.apvts.getRawParameterValue("pickPosition");
+    const auto* palmParam   = audioProcessor.apvts.getRawParameterValue("palmPosition");
     const auto* widthParam  = audioProcessor.apvts.getRawParameterValue("pickWidth");
 
     const float pickupPosition = pickupParam != nullptr ? pickupParam->load() : 0.85f;
     const float pickPosition   = pickParam   != nullptr ? pickParam->load()   : 0.25f;
+    const float palmPosition   = palmParam   != nullptr ? palmParam->load()   : 0.92f;
     const float pickWidth      = widthParam  != nullptr ? widthParam->load()  : 0.25f;
 
     auto getXFromPosition = [&inner] (float normalized)
@@ -193,17 +213,25 @@ void GuitarSynthAudioProcessorEditor::drawStringVisualizer(juce::Graphics& g, ju
 
     const float pickupX = getXFromPosition(pickupPosition);
     const float pickX   = getXFromPosition(pickPosition);
+    const float palmX   = getXFromPosition(palmPosition);
 
-    // Shared pick width overlay.
-    const float widthPixels = 8.0f + pickWidth * 80.0f;
+    const float pickWidthPixels = 8.0f + pickWidth * 80.0f;
     g.setColour(juce::Colours::orange.withAlpha(0.14f));
     g.fillRect(juce::Rectangle<float>(
-        pickX - widthPixels * 0.5f,
+        pickX - pickWidthPixels * 0.5f,
         (float)inner.getY(),
-        widthPixels,
+        pickWidthPixels,
         (float)inner.getHeight()));
 
-    // Shared pick / pickup markers.
+    const float palmWidthPixels = juce::jmax(14.0f, inner.getWidth() * (10.0f / 128.0f));
+
+    g.setColour(juce::Colours::yellow.withAlpha(0.18f));
+    g.fillRect(juce::Rectangle<float>(
+        palmX - palmWidthPixels * 0.5f,
+        (float)inner.getY(),
+        palmWidthPixels,
+        (float)inner.getHeight()));
+
     g.setColour(juce::Colours::orange);
     g.drawLine(pickX, (float)inner.getY(), pickX, (float)inner.getBottom(), 2.0f);
     g.drawText("Pick", (int)pickX - 25, inner.getY(), 50, 18, juce::Justification::centred);
@@ -211,6 +239,10 @@ void GuitarSynthAudioProcessorEditor::drawStringVisualizer(juce::Graphics& g, ju
     g.setColour(juce::Colours::limegreen);
     g.drawLine(pickupX, (float)inner.getY(), pickupX, (float)inner.getBottom(), 2.0f);
     g.drawText("Pickup", (int)pickupX - 35, inner.getBottom() - 18, 70, 18, juce::Justification::centred);
+
+    g.setColour(juce::Colours::yellow);
+    g.drawLine(palmX, (float)inner.getY(), palmX, (float)inner.getBottom(), 2.0f);
+    g.drawText("Palm", (int)palmX - 25, inner.getY() + 18, 50, 18, juce::Justification::centred);
 
     const int stringCount = 6;
     const float laneHeight = inner.getHeight() / (float)stringCount;
@@ -222,11 +254,9 @@ void GuitarSynthAudioProcessorEditor::drawStringVisualizer(juce::Graphics& g, ju
 
         const float centerY = (float)lane.getCentreY();
 
-        // Resting string line.
         g.setColour(juce::Colours::white.withAlpha(0.20f));
         g.drawHorizontalLine((int)centerY, inner.getX(), inner.getRight());
 
-        // String number label.
         g.setColour(juce::Colours::white.withAlpha(0.45f));
         g.drawText(juce::String(s + 1), inner.getX() - 8, lane.getY(), 10, lane.getHeight(),
                    juce::Justification::centredRight);
@@ -243,7 +273,6 @@ void GuitarSynthAudioProcessorEditor::drawStringVisualizer(juce::Graphics& g, ju
                 const float xNorm = (float)i / (float)(n - 1);
                 const float x = inner.getX() + xNorm * inner.getWidth();
 
-                // Visual gain only.
                 const float y = centerY - buffer[(size_t)i] * laneHeight;
 
                 if (i == 0)

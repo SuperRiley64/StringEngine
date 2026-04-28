@@ -397,5 +397,5 @@ float StringVoice::getNextSample()
             clearCurrentNote();
     }
 
-    return std::tanh(out * 1.2f) * 0.8f;
+    return std::tanh(out * 1.2f);
 }
