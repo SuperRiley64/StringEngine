@@ -1,22 +1,35 @@
-# JUCE generated stuff
-Builds/
-JuceLibraryCode/
+# ========= JUCE =========
 
-# macOS
-.DS_Store
+# Keep exporter projects
+!Builds/
+!Builds/MacOSX/
+!Builds/VisualStudio2022/
+
+# Ignore generated build artifacts inside exporters
+Builds/**/build/
+Builds/**/Build/
+Builds/**/x64/
+Builds/**/Debug/
+Builds/**/Release/
+Builds/**/DerivedData/
+Builds/**/JuceLibraryCode/
+Builds/**/.vs/
 
 # Xcode junk
-*.xcworkspace
-xcuserdata/
+*.xcuserdata/
+*.xcuserstate
 DerivedData/
 
-# Build outputs
-*.app
-*.component
-*.vst3
-*.au
-*.dylib
+# Visual Studio junk
+*.suo
+*.user
+*.VC.db
+*.VC.opendb
+*.pdb
+*.ilk
 
-# Debug/Release artifacts
-**/Debug/
-**/Release/
+# JUCE generated intermediate code
+JuceLibraryCode/
+
+# macOS junk
+.DS_Store
