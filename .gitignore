@@ -29,7 +29,6 @@ DerivedData/
 *.ilk
 
 # JUCE generated intermediate code
-JuceLibraryCode/
 
 # macOS junk
 .DS_Store
