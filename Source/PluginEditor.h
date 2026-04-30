@@ -62,7 +62,7 @@ private:
     juce::Slider colorSlider;
     juce::Slider bridgeDampingSlider;
     juce::Slider palmDampingSlider;
-    juce::Slider dispersionSlider;
+    juce::Slider stiffnessSlider;
 
     juce::ToggleButton letStringsRingButton;
 
@@ -74,7 +74,7 @@ private:
     juce::Label colorLabel;
     juce::Label bridgeDampingLabel;
     juce::Label palmDampingLabel;
-    juce::Label dispersionLabel;
+    juce::Label stiffnessLabel;
     juce::Label letStringsRingLabel;
 
     using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
@@ -92,7 +92,7 @@ private:
     std::unique_ptr<SliderAttachment> colorAttachment;
     std::unique_ptr<SliderAttachment> bridgeDampingAttachment;
     std::unique_ptr<SliderAttachment> palmDampingAttachment;
-    std::unique_ptr<SliderAttachment> dispersionAttachment;
+    std::unique_ptr<SliderAttachment> stiffnessAttachment;
 
     std::unique_ptr<ButtonAttachment> letStringsRingAttachment;
 };

@@ -74,8 +74,8 @@ GuitarSynthAudioProcessorEditor::GuitarSynthAudioProcessorEditor (GuitarSynthAud
     setupLabel(palmDampingLabel, "Palm Damp");
     setupKnob(palmDampingSlider);
 
-    setupLabel(dispersionLabel, "Dispersion");
-    setupKnob(dispersionSlider);
+    setupLabel(stiffnessLabel, "Stiffness");
+    setupKnob(stiffnessSlider);
 
     setupLabel(letStringsRingLabel, "Let Ring");
     letStringsRingButton.setButtonText("");
@@ -93,7 +93,7 @@ GuitarSynthAudioProcessorEditor::GuitarSynthAudioProcessorEditor (GuitarSynthAud
     colorAttachment          = std::make_unique<SliderAttachment>(audioProcessor.apvts, "color", colorSlider);
     bridgeDampingAttachment  = std::make_unique<SliderAttachment>(audioProcessor.apvts, "bridgeDamping", bridgeDampingSlider);
     palmDampingAttachment    = std::make_unique<SliderAttachment>(audioProcessor.apvts, "palmDamping", palmDampingSlider);
-    dispersionAttachment     = std::make_unique<SliderAttachment>(audioProcessor.apvts, "dispersion", dispersionSlider);
+    stiffnessAttachment     = std::make_unique<SliderAttachment>(audioProcessor.apvts, "stiffness", stiffnessSlider);
 
     letStringsRingAttachment = std::make_unique<ButtonAttachment>(audioProcessor.apvts, "letStringsRing", letStringsRingButton);
 
@@ -174,7 +174,7 @@ void GuitarSynthAudioProcessorEditor::resized()
     layoutKnob(colorLabel, colorSlider);
     layoutKnob(bridgeDampingLabel, bridgeDampingSlider);
     layoutKnob(palmDampingLabel, palmDampingSlider);
-    layoutKnob(dispersionLabel, dispersionSlider);
+    layoutKnob(stiffnessLabel, stiffnessSlider);
 
     auto buttonCell = knobRow.removeFromLeft(86).reduced(4);
     auto buttonLabelArea = buttonCell.removeFromBottom(18);

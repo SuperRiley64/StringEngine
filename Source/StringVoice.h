@@ -51,7 +51,7 @@ public:
     void setPalmPosition(float newPalmPosition);
     void setPalmDamping(float newPalmDamping);
     void setBridgeDamping(float newBridgeDamping);
-    void setDispersion(float newDispersion);
+    void setStiffness(float newStiffness);
     void setHarmonics(float newHarmonics);
     void setPickNoiseAmount(float newPickNoiseAmount);
 
@@ -90,6 +90,10 @@ private:
     float pendingVelocity = 0.0f;
     int stealFadeSamples = 0;
     int stealFadeCounter = 0;
+    
+    // Stiffness variables
+    std::array<float, maxPoints> nextPos {};
+    std::array<float, maxPoints> nextVel {};
 
     // String Parameters
     float decay = 0.8f;
@@ -110,7 +114,7 @@ private:
     float bridgeDamping = 0.05f;
     
     // String Parameters
-    float dispersion = 0.05f;
+    float stiffness = 0.05f;
     
     // Counts how long the string has been quiet before clearing the voice.
     int quietSamples = 0;

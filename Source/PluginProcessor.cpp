@@ -80,7 +80,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout GuitarSynthAudioProcessor::c
     params.push_back(std::make_unique<juce::AudioParameterBool>("letStringsRing",  "Let Strings Ring", true));
 
     // Strings
-    params.push_back(std::make_unique<juce::AudioParameterFloat>("dispersion",     "Dispersion",      0.0f, 1.0f, 0.05f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("stiffness",     "Stiffness",      0.0f, 1.0f, 0.05f));
 
     return { params.begin(), params.end() };
 }
@@ -207,7 +207,7 @@ void GuitarSynthAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     auto palmDamping    = apvts.getRawParameterValue("palmDamping");
     auto letStringsRing = apvts.getRawParameterValue("letStringsRing");
 
-    auto dispersion     = apvts.getRawParameterValue("dispersion");
+    auto stiffness     = apvts.getRawParameterValue("stiffness");
 
     for (int i = 0; i < synth.getNumVoices(); ++i)
     {
@@ -227,7 +227,7 @@ void GuitarSynthAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
             voice->setPalmDamping(palmDamping->load());
             voice->setLetStringsRing(letStringsRing->load() >= 0.5f);
 
-            voice->setDispersion(dispersion->load());
+            voice->setStiffness(stiffness->load());
         }
     }
 

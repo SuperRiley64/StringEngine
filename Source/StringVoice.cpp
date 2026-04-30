@@ -52,7 +52,7 @@ void StringVoice::setPickStrength(float newStrength)           { pickStrength = 
 void StringVoice::setPalmPosition(float newPalmPosition)       { palmPosition = juce::jlimit(0.0f, 1.0f, newPalmPosition); }
 void StringVoice::setPalmDamping(float newPalmDamping)         { palmDamping = juce::jlimit(0.0f, 1.0f, newPalmDamping); }
 void StringVoice::setBridgeDamping(float newBridgeDamping)     { bridgeDamping = juce::jlimit(0.0f, 1.0f, newBridgeDamping); }
-void StringVoice::setDispersion(float newDispersion)           { dispersion = juce::jlimit(0.0f, 1.0f, newDispersion); }
+void StringVoice::setStiffness(float newStiffness)             { stiffness = juce::jlimit(0.0f, 1.0f, newStiffness); }
 void StringVoice::setHarmonics(float newHarmonics)             { harmonics = juce::jlimit(0.0f, 1.0f, newHarmonics); }
 void StringVoice::setPickNoiseAmount(float newPickNoiseAmount) { pickNoiseAmount = juce::jlimit(0.0f, 1.0f, newPickNoiseAmount); }
 void StringVoice::setLetStringsRing(bool shouldRing)
@@ -254,37 +254,61 @@ void StringVoice::exciteString(float velocityValue)
 
 void StringVoice::updateString()
 {
-    float acc = 0.0f;
+    // True stiff-string model.
+    // Uses a 4th-difference bending force.
+    //
+    // stiffness knob:
+    // 0.0 = normal flexible string
+    // 1.0 = exaggerated stiff string for testing
+    //
+    // NOTE:
+    // This range is intentionally much stronger so you can actually hear it.
+    // If it goes metallic or unstable, lower 0.08f.
+    const float stiffnessAmount =
+        juce::jmap(std::pow(stiffness, 0.5f),
+                   0.0f, 1.0f,
+                   0.0f, 0.08f);
 
-    for (int i = 0; i < numPoints - 1; ++i)
+    nextPos = pos;
+    nextVel = vel;
+
+    // Main wave-processing loop
+    for (int i = 1; i < numPoints - 1; ++i)
     {
-        const float disX = pos[i] - pos[i + 1];
+        // Normal string tension force.
+        const float tensionForce =
+            pos[i - 1] - 2.0f * pos[i] + pos[i + 1];
 
-        vel[i] = (vel[i] + rate * (acc - disX)) * damping;
-        pos[i] += rate * vel[i];
+        float force = tensionForce;
 
-        acc = disX;
+        // Stiffness / bending resistance.
+        if (i > 1 && i < numPoints - 2)
+        {
+            const float bendForce =
+                  pos[i - 2]
+                - 4.0f * pos[i - 1]
+                + 6.0f * pos[i]
+                - 4.0f * pos[i + 1]
+                + pos[i + 2];
+
+            // The extra rate factor makes the stiffness audible in this solver.
+            // Positive sign here should push higher modes sharper/brighter.
+            force += stiffnessAmount * rate * bendForce;
+        }
+
+        nextVel[i] = (vel[i] + rate * force) * damping;
+        nextPos[i] = pos[i] + rate * nextVel[i];
     }
 
+    pos = nextPos;
+    vel = nextVel;
+
+    // Fixed endpoints.
     pos[0] = 0.0f;
     vel[0] = 0.0f;
 
     pos[numPoints - 1] = 0.0f;
     vel[numPoints - 1] = 0.0f;
-
-    // Jangle / pseudo-dispersion model.
-    // This adds a tiny amount of high-frequency motion instead of smoothing it away.
-    // Keep subtle; too much gets unstable fast.
-    const float jangleAmount =
-        juce::jmap(std::pow(dispersion, 0.7f), 0.0f, 1.0f, 0.0f, 0.02f);
-
-    for (int i = 2; i < numPoints - 2; ++i)
-    {
-        const float highMode =
-            pos[i - 1] - 2.0f * pos[i] + pos[i + 1];
-
-        vel[i] -= jangleAmount * highMode;
-    }
 
     // Palm muting model.
     if (palmDamping > 0.001f)
