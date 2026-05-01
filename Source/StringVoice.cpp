@@ -254,54 +254,18 @@ void StringVoice::exciteString(float velocityValue)
 
 void StringVoice::updateString()
 {
-    // True stiff-string model.
-    // Uses a 4th-difference bending force.
-    //
-    // stiffness knob:
-    // 0.0 = normal flexible string
-    // 1.0 = exaggerated stiff string for testing
-    //
-    // NOTE:
-    // This range is intentionally much stronger so you can actually hear it.
-    // If it goes metallic or unstable, lower 0.08f.
-    const float stiffnessAmount =
-        juce::jmap(std::pow(stiffness, 0.5f),
-                   0.0f, 1.0f,
-                   0.0f, 0.08f);
+    float acc = 0.0f;
 
-    nextPos = pos;
-    nextVel = vel;
-
-    // Main wave-processing loop
-    for (int i = 1; i < numPoints - 1; ++i)
+    // Main wave-processing loop.
+    for (int i = 0; i < numPoints - 1; ++i)
     {
-        // Normal string tension force.
-        const float tensionForce =
-            pos[i - 1] - 2.0f * pos[i] + pos[i + 1];
+        const float disX = pos[i] - pos[i + 1];
 
-        float force = tensionForce;
+        vel[i] = (vel[i] + rate * (acc - disX)) * damping;
+        pos[i] += rate * vel[i];
 
-        // Stiffness / bending resistance.
-        if (i > 1 && i < numPoints - 2)
-        {
-            const float bendForce =
-                  pos[i - 2]
-                - 4.0f * pos[i - 1]
-                + 6.0f * pos[i]
-                - 4.0f * pos[i + 1]
-                + pos[i + 2];
-
-            // The extra rate factor makes the stiffness audible in this solver.
-            // Positive sign here should push higher modes sharper/brighter.
-            force += stiffnessAmount * rate * bendForce;
-        }
-
-        nextVel[i] = (vel[i] + rate * force) * damping;
-        nextPos[i] = pos[i] + rate * nextVel[i];
+        acc = disX;
     }
-
-    pos = nextPos;
-    vel = nextVel;
 
     // Fixed endpoints.
     pos[0] = 0.0f;

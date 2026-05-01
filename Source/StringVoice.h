@@ -90,10 +90,6 @@ private:
     float pendingVelocity = 0.0f;
     int stealFadeSamples = 0;
     int stealFadeCounter = 0;
-    
-    // Stiffness variables
-    std::array<float, maxPoints> nextPos {};
-    std::array<float, maxPoints> nextVel {};
 
     // String Parameters
     float decay = 0.8f;
