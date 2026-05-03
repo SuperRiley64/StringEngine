@@ -64,6 +64,15 @@ GuitarSynthAudioProcessorEditor::GuitarSynthAudioProcessorEditor (GuitarSynthAud
 
     setupLabel(pickNoiseLabel, "Pick Noise");
     setupKnob(pickNoiseSlider);
+    
+    setupLabel(pickWidthLabel, "Pick Width");
+    setupKnob(pickWidthSlider);
+    
+    setupLabel(pickShapeLabel, "Pick Shape");
+    setupKnob(pickShapeSlider);
+    
+    setupLabel(pickCenterLabel, "Pick Center");
+    setupKnob(pickCenterSlider);
 
     setupLabel(colorLabel, "Tone");
     setupKnob(colorSlider);
@@ -89,6 +98,9 @@ GuitarSynthAudioProcessorEditor::GuitarSynthAudioProcessorEditor (GuitarSynthAud
     pickWidthAttachment      = std::make_unique<SliderAttachment>(audioProcessor.apvts, "pickWidth", pickWidthSlider);
     harmonicsAttachment      = std::make_unique<SliderAttachment>(audioProcessor.apvts, "harmonics", harmonicsSlider);
     pickNoiseAttachment      = std::make_unique<SliderAttachment>(audioProcessor.apvts, "pickNoise", pickNoiseSlider);
+    
+    pickShapeAttachment      = std::make_unique<SliderAttachment>(audioProcessor.apvts, "pickShape", pickShapeSlider);
+    pickCenterAttachment      = std::make_unique<SliderAttachment>(audioProcessor.apvts, "pickCenter", pickCenterSlider);
 
     colorAttachment          = std::make_unique<SliderAttachment>(audioProcessor.apvts, "color", colorSlider);
     bridgeDampingAttachment  = std::make_unique<SliderAttachment>(audioProcessor.apvts, "bridgeDamping", bridgeDampingSlider);
@@ -171,6 +183,10 @@ void GuitarSynthAudioProcessorEditor::resized()
     layoutKnob(pickWidthLabel, pickWidthSlider);
     layoutKnob(harmonicsLabel, harmonicsSlider);
     layoutKnob(pickNoiseLabel, pickNoiseSlider);
+    
+    layoutKnob(pickShapeLabel, pickShapeSlider);
+    layoutKnob(pickCenterLabel, pickCenterSlider);
+    
     layoutKnob(colorLabel, colorSlider);
     layoutKnob(bridgeDampingLabel, bridgeDampingSlider);
     layoutKnob(palmDampingLabel, palmDampingSlider);

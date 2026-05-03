@@ -58,6 +58,9 @@ private:
     juce::Slider pickWidthSlider;
     juce::Slider harmonicsSlider;
     juce::Slider pickNoiseSlider;
+    
+    juce::Slider pickShapeSlider;
+    juce::Slider pickCenterSlider;
 
     juce::Slider colorSlider;
     juce::Slider bridgeDampingSlider;
@@ -70,6 +73,9 @@ private:
     juce::Label pickWidthLabel;
     juce::Label harmonicsLabel;
     juce::Label pickNoiseLabel;
+    
+    juce::Label pickShapeLabel;
+    juce::Label pickCenterLabel;
 
     juce::Label colorLabel;
     juce::Label bridgeDampingLabel;
@@ -88,6 +94,9 @@ private:
     std::unique_ptr<SliderAttachment> pickWidthAttachment;
     std::unique_ptr<SliderAttachment> harmonicsAttachment;
     std::unique_ptr<SliderAttachment> pickNoiseAttachment;
+    
+    std::unique_ptr<SliderAttachment> pickShapeAttachment;
+    std::unique_ptr<SliderAttachment> pickCenterAttachment;
 
     std::unique_ptr<SliderAttachment> colorAttachment;
     std::unique_ptr<SliderAttachment> bridgeDampingAttachment;

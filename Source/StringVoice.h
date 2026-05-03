@@ -47,6 +47,8 @@ public:
     void setPickPosition(float newPickPosition);
     void setPickWidth(float newPickWidth);
     void setPickStrength(float newPickStrength);
+    void setPickShape(float newPickShape);
+    void setPickShapeCenter(float newPickShapeCenter);
     
     void setPalmPosition(float newPalmPosition);
     void setPalmDamping(float newPalmDamping);
@@ -103,6 +105,9 @@ private:
     float pickStrength = 0.1f;
     float harmonics = 0.18f;
     float pickNoiseAmount = 0.25f;
+    
+    float pickShape = 0.0f;       // 0 triangle, 0.5 rounded, 1 square-ish
+    float pickShapeCenter = 0.5f; // 0 left-skew, 0.5 centered, 1 right-skew
     
     // Damping Parameters
     float palmPosition = 0.85f; // 0=nut, 1=bridge (usually near bridge)

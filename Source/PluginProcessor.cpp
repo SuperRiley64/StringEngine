@@ -71,6 +71,8 @@ juce::AudioProcessorValueTreeState::ParameterLayout GuitarSynthAudioProcessor::c
     params.push_back(std::make_unique<juce::AudioParameterFloat>("pickWidth",      "Pick Width",      0.0f, 1.0f, 0.25f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>("harmonics",      "Harmonics",       0.0f, 1.0f, 0.18f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>("pickNoise",      "Pick Noise",      0.0f, 1.0f, 0.25f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("pickShape",      "Pick Shape",      0.0f, 1.0f, 0.25f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("pickShapeCenter", "Pick Center",      0.0f, 1.0f, 0.5f));
 
     // Damping
     params.push_back(std::make_unique<juce::AudioParameterFloat>("color",          "Tone",            0.0f, 1.0f, 0.5f));
