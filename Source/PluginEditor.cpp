@@ -181,13 +181,13 @@ void GuitarSynthAudioProcessorEditor::resized()
     layoutKnob(harmonicsLabel, harmonicsSlider);
     layoutKnob(pickNoiseLabel, pickNoiseSlider);
     
-    layoutKnob(pickShapeLabel, pickShapeSlider);
-    layoutKnob(pickCenterLabel, pickCenterSlider);
+    //layoutKnob(pickShapeLabel, pickShapeSlider);
+    //layoutKnob(pickCenterLabel, pickCenterSlider);
     
     layoutKnob(colorLabel, colorSlider);
     layoutKnob(bridgeDampingLabel, bridgeDampingSlider);
     layoutKnob(palmDampingLabel, palmDampingSlider);
-    layoutKnob(stiffnessLabel, stiffnessSlider);
+    //layoutKnob(stiffnessLabel, stiffnessSlider);
 
     auto buttonCell = knobRow.removeFromLeft(86).reduced(4);
     auto buttonLabelArea = buttonCell.removeFromBottom(18);
