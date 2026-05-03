@@ -106,7 +106,7 @@ private:
     float harmonics = 0.18f;
     float pickNoiseAmount = 0.25f;
     
-    float pickShape = 0.0f;       // 0 triangle, 0.5 rounded, 1 square-ish
+    float pickShape = 0.25f;       // 0 triangle, 0.5 rounded, 1 square-ish
     float pickShapeCenter = 0.5f; // 0 left-skew, 0.5 centered, 1 right-skew
     
     // Damping Parameters

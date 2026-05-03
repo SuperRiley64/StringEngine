@@ -71,6 +71,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout GuitarSynthAudioProcessor::c
     params.push_back(std::make_unique<juce::AudioParameterFloat>("pickWidth",      "Pick Width",      0.0f, 1.0f, 0.25f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>("harmonics",      "Harmonics",       0.0f, 1.0f, 0.18f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>("pickNoise",      "Pick Noise",      0.0f, 1.0f, 0.25f));
+    
     params.push_back(std::make_unique<juce::AudioParameterFloat>("pickShape",      "Pick Shape",      0.0f, 1.0f, 0.25f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>("pickShapeCenter", "Pick Center",      0.0f, 1.0f, 0.5f));
 
@@ -203,6 +204,9 @@ void GuitarSynthAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     auto pickWidth      = apvts.getRawParameterValue("pickWidth");
     auto harmonics      = apvts.getRawParameterValue("harmonics");
     auto pickNoise      = apvts.getRawParameterValue("pickNoise");
+    
+    auto pickShape      = apvts.getRawParameterValue("pickShape");
+    auto pickCenter      = apvts.getRawParameterValue("pickShapeCenter");
 
     auto color          = apvts.getRawParameterValue("color");
     auto bridgeDamping  = apvts.getRawParameterValue("bridgeDamping");
@@ -223,6 +227,9 @@ void GuitarSynthAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
             voice->setPickWidth(pickWidth->load());
             voice->setHarmonics(harmonics->load());
             voice->setPickNoiseAmount(pickNoise->load());
+            
+            voice->setPickShape(pickShape->load());
+            voice->setPickShapeCenter(pickCenter->load());
 
             voice->setColor(color->load());
             voice->setBridgeDamping(bridgeDamping->load());

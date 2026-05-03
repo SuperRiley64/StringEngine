@@ -56,9 +56,6 @@ GuitarSynthAudioProcessorEditor::GuitarSynthAudioProcessorEditor (GuitarSynthAud
     setupLabel(pickStrengthLabel, "Pick Amp");
     setupKnob(pickStrengthSlider);
 
-    setupLabel(pickWidthLabel, "Pick Width");
-    setupKnob(pickWidthSlider);
-
     setupLabel(harmonicsLabel, "Harmonics");
     setupKnob(harmonicsSlider);
 
@@ -100,7 +97,7 @@ GuitarSynthAudioProcessorEditor::GuitarSynthAudioProcessorEditor (GuitarSynthAud
     pickNoiseAttachment      = std::make_unique<SliderAttachment>(audioProcessor.apvts, "pickNoise", pickNoiseSlider);
     
     pickShapeAttachment      = std::make_unique<SliderAttachment>(audioProcessor.apvts, "pickShape", pickShapeSlider);
-    pickCenterAttachment      = std::make_unique<SliderAttachment>(audioProcessor.apvts, "pickCenter", pickCenterSlider);
+    pickCenterAttachment      = std::make_unique<SliderAttachment>(audioProcessor.apvts, "pickShapeCenter", pickCenterSlider);
 
     colorAttachment          = std::make_unique<SliderAttachment>(audioProcessor.apvts, "color", colorSlider);
     bridgeDampingAttachment  = std::make_unique<SliderAttachment>(audioProcessor.apvts, "bridgeDamping", bridgeDampingSlider);
