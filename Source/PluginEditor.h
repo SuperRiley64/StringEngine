@@ -43,6 +43,8 @@ private:
 
     juce::Rectangle<int> stringVisualizerArea;
     
+    juce::Image backgroundImage;
+    
     // Parameters
     // Fretboard sliders
     juce::Slider pickupPositionSlider;

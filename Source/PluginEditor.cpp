@@ -13,6 +13,12 @@
 GuitarSynthAudioProcessorEditor::GuitarSynthAudioProcessorEditor (GuitarSynthAudioProcessor& p)
     : AudioProcessorEditor (&p), audioProcessor (p)
 {
+    
+    backgroundImage = juce::ImageCache::getFromMemory(
+        BinaryData::background_png,
+        BinaryData::background_pngSize
+    );
+    
     auto setupLabel = [this] (juce::Label& label, const juce::String& text)
     {
         label.setText(text, juce::dontSendNotification);
@@ -121,14 +127,27 @@ void GuitarSynthAudioProcessorEditor::timerCallback()
     repaint();
 }
 
-void GuitarSynthAudioProcessorEditor::paint (juce::Graphics& g)
+void GuitarSynthAudioProcessorEditor::paint(juce::Graphics& g)
 {
-    g.fillAll(getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId));
-
-    g.setColour(juce::Colours::white);
-    g.setFont(juce::FontOptions(15.0f));
-    g.drawFittedText("String Engine", getLocalBounds().removeFromTop(30),
-                     juce::Justification::centred, 1);
+    if (backgroundImage.isValid())
+    {
+        g.drawImageWithin(
+            backgroundImage,
+            0,
+            0,
+            getWidth(),
+            getHeight(),
+            juce::RectanglePlacement::stretchToFit
+        );
+    }
+    else
+    {
+        g.fillAll(
+            getLookAndFeel().findColour(
+                juce::ResizableWindow::backgroundColourId
+            )
+        );
+    }
 
     drawStringVisualizer(g, stringVisualizerArea);
 }
