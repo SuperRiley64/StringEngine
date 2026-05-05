@@ -337,7 +337,7 @@ void StringVoice::updateString()
     const float stiffnessAmount =
         juce::jmap(std::pow(stiffness, 0.7f),
                    0.0f, 1.0f,
-                   0.0f, 0.5f);
+                   0.0f, 0.25f);
 
     // Extra stability damping only for stiffness energy.
     // This prevents the 4th-derivative term from turning into a trampoline.
