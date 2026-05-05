@@ -179,6 +179,7 @@ void StringVoice::renderNextBlock(juce::AudioBuffer<float>& outputBuffer,
 
 void StringVoice::exciteString(float velocityValue)
 {
+    // ===== Pick setup ==========================================================
     const float amp = juce::jmap(pickStrength, 0.0f, 1.0f, 0.01f, 0.14f) * velocityValue;
     const int pluckIndex = positionToPlayableIndex(pickPosition, numPoints);
 
@@ -191,7 +192,7 @@ void StringVoice::exciteString(float velocityValue)
     const float distanceFromMiddle = std::abs(pickPosition - 0.5f) * 2.0f;
     const float narrowPickAmount = 1.0f - pickWidth;
 
-    // Harmonic enrichment.
+    // ===== Harmonic setup ======================================================
     const float positionBrightness = 0.45f * distanceFromMiddle;
     const float pickBrightness = 0.22f * narrowPickAmount;
     const float harmonicAmount = std::pow(harmonics, 0.55f);
@@ -203,78 +204,84 @@ void StringVoice::exciteString(float velocityValue)
             0.10f + positionBrightness + pickBrightness
         );
 
-    // Pick shape control:
-    // 0.0 = triangle
-    // 0.5 = rounded
-    // 1.0 = square-ish / flatter contact
+    // ===== Pick shape setup ====================================================
     const float shape = juce::jlimit(0.0f, 1.0f, pickShape);
 
-    // Pick shape center:
-    // 0.0 = bias toward nut side of contact
-    // 0.5 = centered
-    // 1.0 = bias toward bridge side of contact
     const float centerBias = juce::jmap(
         juce::jlimit(0.0f, 1.0f, pickShapeCenter),
         0.0f, 1.0f,
         -0.65f, 0.65f
     );
 
+    // ===== String displacement =================================================
     for (int i = 1; i < numPoints - 1; ++i)
     {
-        const float triangle = (i <= pluckIndex)
+        // ===== Full-string displacement shaped by pick contact =====================
+        const float baseTriangle = (i <= pluckIndex)
             ? float(i) / float(pluckIndex)
             : float(numPoints - 1 - i) / float(numPoints - 1 - pluckIndex);
 
-        const int distanceFromPick = std::abs(i - pluckIndex);
-
-        const float widthEnvelope = juce::jlimit(
-            0.0f,
-            1.0f,
-            1.0f - (float(distanceFromPick) / float(widthRadius))
-        );
-
-        // Local coordinate around the pick contact area.
-        // -1 = nut-side edge, 0 = pick center, +1 = bridge-side edge.
+        // ===== Local pick coordinate ===============================================
         float localX = float(i - pluckIndex) / float(juce::jmax(1, widthRadius));
-        localX = juce::jlimit(-1.0f, 1.0f, localX - centerBias);
+        localX = juce::jlimit(-1.0f, 1.0f, localX);
 
-        const float absX = std::abs(localX);
-
-        // Triangle contact shape.
-        const float triangleContact = juce::jlimit(0.0f, 1.0f, 1.0f - absX);
-
-        // Rounded contact shape.
-        const float roundedContact = juce::jlimit(
-            0.0f,
+        // Center bias bends the pick contact peak without chopping off the sides.
+        const float biasedX = juce::jlimit(
+            -1.0f,
             1.0f,
-            std::sqrt(juce::jmax(0.0f, 1.0f - absX * absX))
+            localX - centerBias * (1.0f - localX * localX)
         );
 
-        // Square-ish contact shape with softened edges.
-        const float squareContact = juce::jlimit(
-            0.0f,
-            1.0f,
-            1.0f - std::pow(absX, 6.0f)
-        );
+        const float absX = std::abs(biasedX);
 
+        // ===== Contact shape models ================================================
+        // Triangle = sharp point
+        const float triangleShape =
+            juce::jlimit(0.0f, 1.0f, 1.0f - absX);
+
+        // Rounded = smoother fingertip-ish curve
+        const float roundedShape =
+            juce::jlimit(0.0f, 1.0f, std::sqrt(juce::jmax(0.0f, 1.0f - absX * absX)));
+
+        // Square = flatter pick face with sharper edge
+        const float squareShape =
+            absX < 0.75f
+                ? 1.0f
+                : juce::jlimit(0.0f, 1.0f, (1.0f - absX) / 0.25f);
+
+        // Morph triangle -> rounded -> square.
         float contactShape = 0.0f;
 
         if (shape < 0.5f)
         {
-            const float t = shape / 0.5f;
-            contactShape = triangleContact * (1.0f - t) + roundedContact * t;
+            const float t = shape * 2.0f;
+            contactShape = triangleShape * (1.0f - t) + roundedShape * t;
         }
         else
         {
-            const float t = (shape - 0.5f) / 0.5f;
-            contactShape = roundedContact * (1.0f - t) + squareContact * t;
+            const float t = (shape - 0.5f) * 2.0f;
+            contactShape = roundedShape * (1.0f - t) + squareShape * t;
         }
 
-        // Blend global string displacement with local pick-contact shape.
-        const float shaped =
-            triangle * juce::jmap(pickWidth, 0.0f, 1.0f, 1.0f, 0.30f)
-            + contactShape * juce::jmap(pickWidth, 0.0f, 1.0f, 0.0f, 0.70f);
+        // ===== Apply pick shape as actual displacement processing ===================
+        // This is the important change:
+        // pick shape now changes the full pluck curve instead of being a quiet overlay.
+        //
+        // Triangle shape keeps the original kink.
+        // Rounded shape softens the kink.
+        // Square shape flattens the contact area harder.
+        const float shapePower = juce::jmap(shape, 0.0f, 1.0f, 1.25f, 0.20f);
+        const float processedTriangle = std::pow(baseTriangle, shapePower);
 
+        // Local shaped contact replaces the string curve near the pick.
+        const float contactAmount =
+            juce::jmap(std::pow(pickWidth, 0.35f), 0.0f, 1.0f, 0.55f, 1.0f);
+
+        const float shaped =
+            processedTriangle * (1.0f - contactAmount)
+            + (processedTriangle * contactShape) * contactAmount;
+
+        // ===== Pick harmonics ==================================================
         const float x = float(i) / float(numPoints - 1);
 
         const float mode2 = std::sin(2.0f * juce::MathConstants<float>::pi * x);
@@ -291,19 +298,27 @@ void StringVoice::exciteString(float velocityValue)
                 + (0.10f + 0.20f * distanceFromMiddle) * mode5
               );
 
-        const float rawNoise = juce::Random::getSystemRandom().nextFloat() * 2.0f - 1.0f;
+        // ===== Pick noise =======================================================
+        const float rawNoise =
+            juce::Random::getSystemRandom().nextFloat() * 2.0f - 1.0f;
 
         const float noiseGain =
-            juce::jmap(std::pow(pickNoiseAmount, 0.7f), 0.0f, 1.0f, 0.0f, 0.06f);
+            juce::jmap(std::pow(pickNoiseAmount, 0.7f),
+                       0.0f, 1.0f,
+                       0.0f, 0.06f);
 
-        const float pickNoise = rawNoise * noiseGain * velocityValue * contactShape;
+        const float pickNoise =
+            rawNoise * noiseGain * velocityValue * contactShape;
 
+        // ===== Apply excitation =================================================
         pos[i] = amp * harmonicShape + pickNoise;
     }
 
+    // ===== Fixed endpoints =====================================================
     pos[0] = 0.0f;
     pos[numPoints - 1] = 0.0f;
 }
+
 //==============================================================================
 // String simulation
 

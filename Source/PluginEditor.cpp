@@ -181,8 +181,8 @@ void GuitarSynthAudioProcessorEditor::resized()
     layoutKnob(harmonicsLabel, harmonicsSlider);
     layoutKnob(pickNoiseLabel, pickNoiseSlider);
     
-    //layoutKnob(pickShapeLabel, pickShapeSlider);
-    //layoutKnob(pickCenterLabel, pickCenterSlider);
+    layoutKnob(pickShapeLabel, pickShapeSlider);
+    layoutKnob(pickCenterLabel, pickCenterSlider);
     
     layoutKnob(colorLabel, colorSlider);
     layoutKnob(bridgeDampingLabel, bridgeDampingSlider);
