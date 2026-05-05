@@ -155,9 +155,9 @@ void GuitarSynthAudioProcessorEditor::resized()
 
         slider.setBounds(cell);
     };
-
-    layoutFretSlider(pickupPositionLabel, pickupPositionSlider);
+    
     layoutFretSlider(pickPositionLabel, pickPositionSlider);
+    layoutFretSlider(pickupPositionLabel, pickupPositionSlider);
     layoutFretSlider(palmPositionLabel, palmPositionSlider);
 
     area.removeFromTop(12);
@@ -187,7 +187,7 @@ void GuitarSynthAudioProcessorEditor::resized()
     layoutKnob(colorLabel, colorSlider);
     layoutKnob(bridgeDampingLabel, bridgeDampingSlider);
     layoutKnob(palmDampingLabel, palmDampingSlider);
-    //layoutKnob(stiffnessLabel, stiffnessSlider);
+    layoutKnob(stiffnessLabel, stiffnessSlider);
 
     auto buttonCell = knobRow.removeFromLeft(86).reduced(4);
     auto buttonLabelArea = buttonCell.removeFromBottom(18);

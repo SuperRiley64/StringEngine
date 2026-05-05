@@ -324,18 +324,53 @@ void StringVoice::exciteString(float velocityValue)
 
 void StringVoice::updateString()
 {
-    float acc = 0.0f;
+    // ===== Stable-ish stiff string update =======================================
+    // This uses a two-buffer update so every force is calculated from the old
+    // string state. That avoids the "strings going backwards through space" thing
+    // caused by mutating pos[] while also reading from it.
 
-    // Main wave-processing loop.
-    for (int i = 0; i < numPoints - 1; ++i)
+    nextPos = pos;
+    nextVel = vel;
+
+    // Stiffness must be scaled way down for short/high-note strings.
+    // Otherwise the 4th derivative gets enormous.
+    const float stiffnessAmount =
+        juce::jmap(std::pow(stiffness, 0.7f),
+                   0.0f, 1.0f,
+                   0.0f, 0.5f);
+
+    // Extra stability damping only for stiffness energy.
+    // This prevents the 4th-derivative term from turning into a trampoline.
+    //const float stiffnessDamping =
+    //    juce::jmap(stiffness, 0.0f, 1.0f, 1.0f, 0.995f);
+
+    for (int i = 1; i < numPoints - 1; ++i)
     {
-        const float disX = pos[i] - pos[i + 1];
+        // Normal flexible-string tension.
+        const float tensionForce =
+            pos[i - 1] - 2.0f * pos[i] + pos[i + 1];
 
-        vel[i] = (vel[i] + rate * (acc - disX)) * damping;
-        pos[i] += rate * vel[i];
+        float force = tensionForce;
 
-        acc = disX;
+        // Stiff-string bending resistance.
+        if (i > 1 && i < numPoints - 2)
+        {
+            const float bendForce =
+                  pos[i - 2]
+                - 4.0f * pos[i - 1]
+                + 6.0f * pos[i]
+                - 4.0f * pos[i + 1]
+                + pos[i + 2];
+
+            force -= stiffnessAmount * bendForce;
+        }
+
+        nextVel[i] = (vel[i] + rate * force) * damping;// * stiffnessDamping;
+        nextPos[i] = pos[i] + rate * nextVel[i];
     }
+
+    pos = nextPos;
+    vel = nextVel;
 
     // Fixed endpoints.
     pos[0] = 0.0f;
