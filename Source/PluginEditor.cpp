@@ -49,6 +49,16 @@ GuitarSynthAudioProcessorEditor::GuitarSynthAudioProcessorEditor (GuitarSynthAud
 
         addAndMakeVisible(slider);
     };
+    
+    
+    setupLabel(bodyMixLabel, "Body Mix");
+    setupKnob(bodyMixSlider);
+    
+    setupLabel(bodySizeLabel, "Body Size");
+    setupKnob(bodySizeSlider);
+    
+    setupLabel(bodyDampingLabel, "Body Damping");
+    setupKnob(bodyDampingSlider);
 
     setupLabel(pickupPositionLabel, "Pickup Position");
     setupFretSlider(pickupPositionSlider);
@@ -88,11 +98,15 @@ GuitarSynthAudioProcessorEditor::GuitarSynthAudioProcessorEditor (GuitarSynthAud
 
     setupLabel(stiffnessLabel, "Stiffness");
     setupKnob(stiffnessSlider);
-
+    
     setupLabel(letStringsRingLabel, "Let Ring");
     letStringsRingButton.setButtonText("");
     addAndMakeVisible(letStringsRingButton);
 
+    bodyMixAttachment = std::make_unique<SliderAttachment>(audioProcessor.apvts, "bodyMix", bodyMixSlider);
+    bodySizeAttachment   = std::make_unique<SliderAttachment>(audioProcessor.apvts, "bodySize", bodySizeSlider);
+    bodyDampingAttachment   = std::make_unique<SliderAttachment>(audioProcessor.apvts, "bodyDamping", bodyDampingSlider);
+    
     pickupPositionAttachment = std::make_unique<SliderAttachment>(audioProcessor.apvts, "pickupPosition", pickupPositionSlider);
     pickPositionAttachment   = std::make_unique<SliderAttachment>(audioProcessor.apvts, "pickPosition", pickPositionSlider);
     palmPositionAttachment   = std::make_unique<SliderAttachment>(audioProcessor.apvts, "palmPosition", palmPositionSlider);
@@ -180,11 +194,11 @@ void GuitarSynthAudioProcessorEditor::resized()
     layoutFretSlider(palmPositionLabel, palmPositionSlider);
 
     // ===== Manual knob layout =================================================
-    const int knobSize = 64;
-    const int labelHeight = 18;
+    const int knobSize = 60;
+    const int labelHeight = 15;
     const int cellWidth = 86;
-    const int startX = 16;
-    const int startY = 384; // tweak this if needed
+    const int startX = 22;
+    const int startY = 400; // tweak this if needed
 
     auto layoutKnobAt = [this, knobSize, labelHeight] (
         juce::Label& label,
@@ -209,6 +223,10 @@ void GuitarSynthAudioProcessorEditor::resized()
         label.setJustificationType(juce::Justification::centred);
         label.setBounds(x - 8, y + knobSize, knobSize + 16, labelHeight);
     };
+    
+    layoutKnobAt(bodyMixLabel,        bodyMixSlider,   695 + cellWidth * 0, 60);
+    layoutKnobAt(bodySizeLabel,       bodySizeSlider,      695 + cellWidth * 1, 60);
+    layoutKnobAt(bodyDampingLabel,    bodyDampingSlider,      695 + cellWidth * 2, 60);
 
     layoutKnobAt(pickStrengthLabel,   pickStrengthSlider,   startX + cellWidth * 0, startY);
     layoutKnobAt(pickWidthLabel,      pickWidthSlider,      startX + cellWidth * 1, startY);

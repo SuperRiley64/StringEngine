@@ -62,7 +62,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout GuitarSynthAudioProcessor::c
     std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
 
     // Body
-    params.push_back(std::make_unique<juce::AudioParameterFloat>("bodyMix",     "Body Mix",     0.0f, 1.0f, 0.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("bodyMix",     "Body Mix",     0.0f, 1.0f, 0.5f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>("bodySize",    "Body Size",    0.0f, 1.0f, 0.5f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>("bodyDamping", "Body Damping", 0.0f, 1.0f, 0.5f));
     
@@ -323,7 +323,7 @@ void GuitarSynthAudioProcessor::processBodyResonator(juce::AudioBuffer<float>& b
     if (numChannels <= 0)
         return;
 
-    const float wetGain = juce::jmap(currentBodyMix, 0.0f, 1.0f, 0.0f, 0.85f);
+    const float wetGain = juce::jmap(currentBodyMix, 0.0f, 1.0f, 0.0f, 2.5f);
     const float dryGain = 1.0f - (currentBodyMix * 0.25f);
 
     for (int sample = 0; sample < numSamples; ++sample)
@@ -338,8 +338,8 @@ void GuitarSynthAudioProcessor::processBodyResonator(juce::AudioBuffer<float>& b
         {
             const float gain = bodyModeGains[(size_t)mode];
 
-            bodyL += gain * bodyFiltersL[(size_t)mode].processSample(dryL);
-            bodyR += gain * bodyFiltersR[(size_t)mode].processSample(dryR);
+            bodyL += gain * 2.0f * bodyFiltersL[(size_t)mode].processSample(dryL);
+            bodyR += gain * 2.0f * bodyFiltersR[(size_t)mode].processSample(dryR);
         }
 
         const float outL = dryL * dryGain + bodyL * wetGain;

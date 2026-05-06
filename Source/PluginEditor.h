@@ -56,6 +56,10 @@ private:
     juce::Label palmPositionLabel;
 
     // Knobs
+    juce::Slider bodyMixSlider;
+    juce::Slider bodySizeSlider;
+    juce::Slider bodyDampingSlider;
+    
     juce::Slider pickStrengthSlider;
     juce::Slider pickWidthSlider;
     juce::Slider harmonicsSlider;
@@ -70,6 +74,11 @@ private:
     juce::Slider stiffnessSlider;
 
     juce::ToggleButton letStringsRingButton;
+    
+    
+    juce::Label bodyMixLabel;
+    juce::Label bodySizeLabel;
+    juce::Label bodyDampingLabel;
 
     juce::Label pickStrengthLabel;
     juce::Label pickWidthLabel;
@@ -88,6 +97,10 @@ private:
     using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
     using ButtonAttachment = juce::AudioProcessorValueTreeState::ButtonAttachment;
 
+    std::unique_ptr<SliderAttachment> bodyMixAttachment;
+    std::unique_ptr<SliderAttachment> bodySizeAttachment;
+    std::unique_ptr<SliderAttachment> bodyDampingAttachment;
+    
     std::unique_ptr<SliderAttachment> pickupPositionAttachment;
     std::unique_ptr<SliderAttachment> pickPositionAttachment;
     std::unique_ptr<SliderAttachment> palmPositionAttachment;
