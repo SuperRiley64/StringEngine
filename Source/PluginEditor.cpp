@@ -174,47 +174,56 @@ void GuitarSynthAudioProcessorEditor::resized()
 
         slider.setBounds(cell);
     };
-    
+
     layoutFretSlider(pickPositionLabel, pickPositionSlider);
     layoutFretSlider(pickupPositionLabel, pickupPositionSlider);
     layoutFretSlider(palmPositionLabel, palmPositionSlider);
 
-    area.removeFromTop(12);
+    // ===== Manual knob layout =================================================
+    const int knobSize = 64;
+    const int labelHeight = 18;
+    const int cellWidth = 86;
+    const int startX = 16;
+    const int startY = 384; // tweak this if needed
 
-    auto knobRow = area.removeFromTop(112);
-
-    auto layoutKnob = [&knobRow] (juce::Label& label, juce::Slider& slider)
+    auto layoutKnobAt = [this, knobSize, labelHeight] (
+        juce::Label& label,
+        juce::Slider& slider,
+        int x,
+        int y)
     {
-        auto cell = knobRow.removeFromLeft(86).reduced(4);
-
-        auto labelArea = cell.removeFromBottom(18);
-
-        slider.setBounds(cell.reduced(2));
+        slider.setBounds(x, y, knobSize, knobSize);
 
         label.setJustificationType(juce::Justification::centred);
-        label.setBounds(labelArea);
+        label.setBounds(x - 8, y + knobSize, knobSize + 16, labelHeight);
     };
 
-    layoutKnob(pickStrengthLabel, pickStrengthSlider);
-    layoutKnob(pickWidthLabel, pickWidthSlider);
-    layoutKnob(harmonicsLabel, harmonicsSlider);
-    layoutKnob(pickNoiseLabel, pickNoiseSlider);
-    
-    layoutKnob(pickShapeLabel, pickShapeSlider);
-    layoutKnob(pickCenterLabel, pickCenterSlider);
-    
-    layoutKnob(colorLabel, colorSlider);
-    layoutKnob(bridgeDampingLabel, bridgeDampingSlider);
-    layoutKnob(palmDampingLabel, palmDampingSlider);
-    layoutKnob(stiffnessLabel, stiffnessSlider);
+    auto layoutButtonAt = [this, knobSize, labelHeight] (
+        juce::Label& label,
+        juce::ToggleButton& button,
+        int x,
+        int y)
+    {
+        button.setBounds(x + 17, y + 17, 30, 30);
 
-    auto buttonCell = knobRow.removeFromLeft(86).reduced(4);
-    auto buttonLabelArea = buttonCell.removeFromBottom(18);
+        label.setJustificationType(juce::Justification::centred);
+        label.setBounds(x - 8, y + knobSize, knobSize + 16, labelHeight);
+    };
 
-    letStringsRingButton.setBounds(buttonCell.withSizeKeepingCentre(30, 30));
+    layoutKnobAt(pickStrengthLabel,   pickStrengthSlider,   startX + cellWidth * 0, startY);
+    layoutKnobAt(pickWidthLabel,      pickWidthSlider,      startX + cellWidth * 1, startY);
+    layoutKnobAt(harmonicsLabel,      harmonicsSlider,      startX + cellWidth * 2, startY);
+    layoutKnobAt(pickNoiseLabel,      pickNoiseSlider,      startX + cellWidth * 3, startY);
 
-    letStringsRingLabel.setJustificationType(juce::Justification::centred);
-    letStringsRingLabel.setBounds(buttonLabelArea);
+    layoutKnobAt(pickShapeLabel,      pickShapeSlider,      startX + cellWidth * 4, startY);
+    layoutKnobAt(pickCenterLabel,     pickCenterSlider,     startX + cellWidth * 5, startY);
+
+    layoutKnobAt(colorLabel,          colorSlider,          startX + cellWidth * 6, startY);
+    layoutKnobAt(bridgeDampingLabel,  bridgeDampingSlider,  startX + cellWidth * 7, startY);
+    layoutKnobAt(palmDampingLabel,    palmDampingSlider,    startX + cellWidth * 8, startY);
+    layoutKnobAt(stiffnessLabel,      stiffnessSlider,      startX + cellWidth * 9, startY);
+
+    layoutButtonAt(letStringsRingLabel, letStringsRingButton, startX + cellWidth * 10, startY);
 }
 
 void GuitarSynthAudioProcessorEditor::drawStringVisualizer(juce::Graphics& g, juce::Rectangle<int> area)

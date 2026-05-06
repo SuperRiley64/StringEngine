@@ -1,6 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include <array>
 #include "StringVoice.h"
 
 class StringSound : public juce::SynthesiserSound
@@ -44,10 +45,43 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
     
-    // Visualizer
+    // ===== Visualizer =========================================================
     void copyActiveStringStates(std::array<std::vector<float>, 6>& destinations) const;
     
-    // Parameters
+    // ===== Body resonator =====================================================
+    void processBodyResonator(juce::AudioBuffer<float>& buffer);
+    void updateBodyResonatorParameters(float bodyMix, float bodySize, float bodyDamping);
+
+    static constexpr int bodyModeCount = 6;
+
+    std::array<juce::dsp::IIR::Filter<float>, bodyModeCount> bodyFiltersL;
+    std::array<juce::dsp::IIR::Filter<float>, bodyModeCount> bodyFiltersR;
+
+    std::array<float, bodyModeCount> bodyBaseFrequencies
+    {
+        90.0f,
+        140.0f,
+        220.0f,
+        315.0f,
+        480.0f,
+        720.0f
+    };
+
+    std::array<float, bodyModeCount> bodyModeGains
+    {
+        0.70f,
+        0.55f,
+        0.45f,
+        0.35f,
+        0.25f,
+        0.18f
+    };
+
+    float currentBodyMix = 0.0f;
+    float currentBodySize = 0.5f;
+    float currentBodyDamping = 0.5f;
+    
+    // ===== Parameters ===========================================================
     juce::AudioProcessorValueTreeState apvts;
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 
