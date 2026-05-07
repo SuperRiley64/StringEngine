@@ -25,10 +25,6 @@ GuitarSynthAudioProcessor::GuitarSynthAudioProcessor()
      : apvts(*this, nullptr, "PARAMETERS", createParameterLayout())
 #endif
 {
-    for (int i = 0; i < 6; ++i)
-        synth.addVoice (new StringVoice());
-
-    synth.addSound (new StringSound());
 }
 
 GuitarSynthAudioProcessor::~GuitarSynthAudioProcessor()
@@ -45,7 +41,7 @@ void GuitarSynthAudioProcessor::copyActiveStringStates(std::array<std::vector<fl
 
     for (int i = 0; i < synth.getNumVoices() && stringIndex < 6; ++i)
     {
-        if (auto* voice = dynamic_cast<StringVoice*>(synth.getVoice(i)))
+        if (auto* voice = synth.getVoice(i))
         {
             if (voice->isVoiceActive())
             {
@@ -65,6 +61,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout GuitarSynthAudioProcessor::c
     params.push_back(std::make_unique<juce::AudioParameterFloat>("bodyMix",     "Body Mix",     0.0f, 1.0f, 0.5f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>("bodySize",    "Body Size",    0.0f, 1.0f, 0.5f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>("bodyDamping", "Body Damping", 0.0f, 1.0f, 0.5f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("sympathetic", "Sympathetic", 0.0f, 1.0f, 0.0f));
     
     // Fretboard sliders
     params.push_back(std::make_unique<juce::AudioParameterFloat>("pickupPosition", "Pickup Position", 0.0f, 1.0f, 0.85f));
@@ -228,7 +225,7 @@ void GuitarSynthAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
 
     for (int i = 0; i < synth.getNumVoices(); ++i)
     {
-        if (auto* voice = dynamic_cast<StringVoice*>(synth.getVoice(i)))
+        if (auto* voice = synth.getVoice(i))
         {
             voice->setPickupPosition(pickupPosition->load());
             voice->setPickPosition(pickPosition->load());
@@ -254,14 +251,17 @@ void GuitarSynthAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     auto bodyMix     = apvts.getRawParameterValue("bodyMix");
     auto bodySize    = apvts.getRawParameterValue("bodySize");
     auto bodyDamping = apvts.getRawParameterValue("bodyDamping");
-
-    synth.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
     
     updateBodyResonatorParameters(
         bodyMix->load(),
         bodySize->load(),
         bodyDamping->load()
     );
+    
+    auto sympathetic = apvts.getRawParameterValue("sympathetic");
+    synth.setSympatheticAmount(sympathetic->load() * 0.1); // Scale the knob for sym. DSP
+    
+    synth.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
 
     processBodyResonator(buffer);
 }

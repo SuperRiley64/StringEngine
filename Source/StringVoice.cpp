@@ -15,13 +15,22 @@ namespace
 }
 
 //==============================================================================
-StringVoice::StringVoice() {}
+StringVoice::StringVoice(int openMidiNoteNumber)
+    : openMidiNote(openMidiNoteNumber),
+      currentMidiNote(-1)
+{
+}
 
 void StringVoice::prepare(double sampleRate, int)
 {
     sr = sampleRate;
     pos.fill(0.0f);
     vel.fill(0.0f);
+    
+    hasBeenInitialized = false;
+
+    // Pre-tune this string as its open note immediately.
+    initializeOpenStringIfNeeded();
 }
 
 //==============================================================================
@@ -39,6 +48,155 @@ void StringVoice::copyStringState(std::vector<float>& destination) const
 int StringVoice::getCurrentNumPoints() const
 {
     return numPoints;
+}
+
+//==============================================================================
+// Sympathetic Resonance
+
+int StringVoice::getCurrentMidiNote() const
+{
+    return currentMidiNote >= 0 ? currentMidiNote : openMidiNote;
+}
+
+float StringVoice::getStringEnergy() const
+{
+    float energy = 0.0f;
+
+    for (int i = 1; i < numPoints - 1; ++i)
+        energy += std::abs(pos[(size_t)i]) + std::abs(vel[(size_t)i]);
+
+    return energy / (float)juce::jmax(1, numPoints - 2);
+}
+
+void StringVoice::injectSympatheticEnergy(const StringVoice& sourceVoice, float amount)
+{
+    const float sourceEnergy = sourceVoice.getStringEnergy();
+
+    if (sourceEnergy < 1.0e-6f)
+        return;
+
+    const int sourceNote = sourceVoice.getCurrentMidiNote();
+    const int targetNote = getCurrentMidiNote();
+
+    const int semitoneDistance = std::abs(sourceNote - targetNote) % 12;
+
+    float harmonicRelation = 0.0f;
+
+    switch (semitoneDistance)
+    {
+        case 0:  harmonicRelation = 1.00f; break;
+        case 7:  harmonicRelation = 0.65f; break;
+        case 5:  harmonicRelation = 0.45f; break;
+        case 4:  harmonicRelation = 0.30f; break;
+        case 3:  harmonicRelation = 0.20f; break;
+        default: harmonicRelation = 0.0f;  break;
+    }
+
+    if (harmonicRelation <= 0.0f)
+        return;
+
+    const float targetEnergy = getStringEnergy();
+
+    // Much gentler headroom. Only reduce injection if target is already pretty active.
+    const float headroom =
+        juce::jlimit(0.0f, 1.0f, 1.0f - (targetEnergy * 8.0f));
+
+    const float injectionGain =
+        juce::jlimit(
+            0.0f,
+            0.012f,
+            amount * harmonicRelation * headroom
+        );
+
+    if (injectionGain <= 0.0f)
+        return;
+
+    const int sourcePoints = sourceVoice.getCurrentNumPoints();
+
+    for (int i = 1; i < numPoints - 1; ++i)
+    {
+        const float normalized =
+            (float)i / (float)juce::jmax(1, numPoints - 1);
+
+        const int sourceIndex = juce::jlimit(
+            1,
+            sourcePoints - 2,
+            (int)std::round(normalized * (float)(sourcePoints - 1))
+        );
+
+        // Inject mostly velocity. That sounds more like resonance being excited,
+        // instead of directly reshaping the target string.
+        vel[(size_t)i] += sourceVoice.vel[(size_t)sourceIndex] * injectionGain;
+        pos[(size_t)i] += sourceVoice.pos[(size_t)sourceIndex] * injectionGain * 0.25f;
+    }
+    
+    // ===== Sympathetic energy damping / limiter =============================
+    // Prevent repeated same-note injection from accumulating forever.
+    const float maxSympatheticEnergy =
+        juce::jmap(amount, 0.0f, 1.0f, 0.015f, 0.08f);
+
+    const float newEnergy = getStringEnergy();
+
+    if (newEnergy > maxSympatheticEnergy)
+    {
+        const float scale = std::sqrt(maxSympatheticEnergy / newEnergy);
+
+        for (int i = 1; i < numPoints - 1; ++i)
+        {
+            pos[(size_t)i] *= scale;
+            vel[(size_t)i] *= scale;
+        }
+    }
+    else
+    {
+        // Tiny loss so repeated injections naturally settle.
+        const float sympatheticLoss =
+            juce::jmap(amount, 0.0f, 1.0f, 0.9998f, 0.9975f);
+
+        for (int i = 1; i < numPoints - 1; ++i)
+        {
+            pos[(size_t)i] *= sympatheticLoss;
+            vel[(size_t)i] *= sympatheticLoss;
+        }
+    }
+}
+
+void StringVoice::initializeOpenStringIfNeeded()
+{
+    if (hasBeenInitialized)
+        return;
+
+    const float freq = juce::MidiMessage::getMidiNoteInHertz(openMidiNote);
+
+    const float maxStableRate = 0.70f;
+    const int minUsefulPoints = 16;
+
+    subSteps = 1;
+
+    while ((2.0f * freq * float(minUsefulPoints - 1))
+           / (float(sr) * float(subSteps)) > maxStableRate)
+    {
+        ++subSteps;
+    }
+
+    const int maxAllowedPoints =
+        1 + (int)std::floor((maxStableRate * float(sr) * float(subSteps))
+                            / (2.0f * freq));
+
+    numPoints = juce::jlimit(minUsefulPoints, maxPoints, maxAllowedPoints);
+
+    rate = (2.0f * freq * float(numPoints - 1))
+           / (float(sr) * float(subSteps));
+
+    rate = juce::jlimit(0.01f, maxStableRate, rate);
+
+    pickupIndex = positionToPlayableIndex(pickupPosition, numPoints);
+
+    pos.fill(0.0f);
+    vel.fill(0.0f);
+
+    currentMidiNote = -1;
+    hasBeenInitialized = true;
 }
 
 //==============================================================================
@@ -111,6 +269,7 @@ void StringVoice::startNewStringNote(int midiNoteNumber, float velocityValue)
     vel.fill(0.0f);
 
     velocityGain = velocityValue;
+    currentMidiNote = midiNoteNumber;
     isReleasing = false;
 
     const float freq = juce::MidiMessage::getMidiNoteInHertz(midiNoteNumber);
@@ -162,8 +321,8 @@ void StringVoice::renderNextBlock(juce::AudioBuffer<float>& outputBuffer,
                                   int startSample,
                                   int numSamples)
 {
-    if (! isVoiceActive())
-        return;
+    // Do not return early here.
+    // Persistent strings may be idle but still receive sympathetic energy.
 
     for (int sample = 0; sample < numSamples; ++sample)
     {
@@ -473,7 +632,10 @@ float StringVoice::getNextSample()
     }
 
     if (!letStringsRing && isReleasing && releaseGain < 0.001f)
+    {
+        currentMidiNote = -1;
         clearCurrentNote();
+    }
 
     if (letStringsRing)
     {
@@ -487,7 +649,10 @@ float StringVoice::getNextSample()
         quietSamples = (energy < 1.0e-5f) ? quietSamples + 1 : 0;
 
         if (quietSamples > (int)(0.25 * sr))
+        {
+            currentMidiNote = -1;
             clearCurrentNote();
+        }
     }
 
     return std::tanh(out * 1.2f);

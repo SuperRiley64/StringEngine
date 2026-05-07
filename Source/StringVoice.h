@@ -16,7 +16,7 @@
 class StringVoice : public juce::SynthesiserVoice
 {
 public:
-    StringVoice();
+    explicit StringVoice(int openMidiNoteNumber = 40);
 
     bool canPlaySound(juce::SynthesiserSound*) override { return true; }
 
@@ -37,6 +37,11 @@ public:
     // Visualizer
     void copyStringState(std::vector<float>& destination) const;
     int getCurrentNumPoints() const;
+    
+    // Sympathetic resonance methods
+    int getCurrentMidiNote() const;
+    float getStringEnergy() const;
+    void injectSympatheticEnergy(const StringVoice& sourceVoice, float amount);
 
     // Parameter Setters
     void setDecay(float newDecay);
@@ -64,6 +69,8 @@ private:
     void exciteString(float velocity);
     void updateString();
     void startNewStringNote(int midiNoteNumber, float velocityValue);
+    void initializeOpenStringIfNeeded();
+    bool hasBeenInitialized = false;
 
     double sr = 44100.0;
     int fadeInSamples = 0;
@@ -85,6 +92,10 @@ private:
     float releaseGain = 1.0f;
     
     float colorFilterState = 0.0f;
+    
+    // Sympathetic resonance / string identity
+    int openMidiNote = 40;      // Default low E
+    int currentMidiNote = -1;   // -1 means idle/open string
     
     // State variables to fix popping on voice steals
     bool pendingNewNote = false;

@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include <array>
 #include "StringVoice.h"
+#include "StringEngine.h"
 
 class StringSound : public juce::SynthesiserSound
 {
@@ -86,7 +87,7 @@ public:
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 
 private:
-    juce::Synthesiser synth;
+    StringEngine synth;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (GuitarSynthAudioProcessor)
 };

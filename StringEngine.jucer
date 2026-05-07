@@ -5,6 +5,9 @@
               pluginAUMainType="'augn'">
   <MAINGROUP id="HMNNtD" name="StringEngine">
     <GROUP id="{A96D1E77-957C-7F6B-5A7D-C67927977735}" name="Source">
+      <FILE id="D8U5aJ" name="StringEngine.cpp" compile="1" resource="0"
+            file="Source/StringEngine.cpp"/>
+      <FILE id="vzsVVP" name="StringEngine.h" compile="0" resource="0" file="Source/StringEngine.h"/>
       <FILE id="WUSKsl" name="StringVoice.cpp" compile="1" resource="0" file="Source/StringVoice.cpp"/>
       <FILE id="I4ZZUh" name="StringVoice.h" compile="0" resource="0" file="Source/StringVoice.h"/>
       <FILE id="pXS7hV" name="PluginProcessor.cpp" compile="1" resource="0"

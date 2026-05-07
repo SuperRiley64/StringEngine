@@ -50,6 +50,7 @@ private:
     juce::Slider pickupPositionSlider;
     juce::Slider pickPositionSlider;
     juce::Slider palmPositionSlider;
+    juce::Slider sympatheticSlider;
 
     juce::Label pickupPositionLabel;
     juce::Label pickPositionLabel;
@@ -79,6 +80,7 @@ private:
     juce::Label bodyMixLabel;
     juce::Label bodySizeLabel;
     juce::Label bodyDampingLabel;
+    juce::Label sympatheticLabel;
 
     juce::Label pickStrengthLabel;
     juce::Label pickWidthLabel;
@@ -100,6 +102,7 @@ private:
     std::unique_ptr<SliderAttachment> bodyMixAttachment;
     std::unique_ptr<SliderAttachment> bodySizeAttachment;
     std::unique_ptr<SliderAttachment> bodyDampingAttachment;
+    std::unique_ptr<SliderAttachment> sympatheticAttachment;
     
     std::unique_ptr<SliderAttachment> pickupPositionAttachment;
     std::unique_ptr<SliderAttachment> pickPositionAttachment;

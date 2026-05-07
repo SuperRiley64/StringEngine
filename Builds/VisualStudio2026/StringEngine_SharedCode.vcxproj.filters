@@ -703,6 +703,9 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\Source\StringEngine.cpp">
+      <Filter>StringEngine\Source</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\Source\StringVoice.cpp">
       <Filter>StringEngine\Source</Filter>
     </ClCompile>
@@ -3747,6 +3750,9 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\Source\StringEngine.h">
+      <Filter>StringEngine\Source</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Source\StringVoice.h">
       <Filter>StringEngine\Source</Filter>
     </ClInclude>

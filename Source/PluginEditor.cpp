@@ -59,6 +59,9 @@ GuitarSynthAudioProcessorEditor::GuitarSynthAudioProcessorEditor (GuitarSynthAud
     
     setupLabel(bodyDampingLabel, "Body Damping");
     setupKnob(bodyDampingSlider);
+    
+    setupLabel(sympatheticLabel, "Sympathetic");
+    setupKnob(sympatheticSlider);
 
     setupLabel(pickupPositionLabel, "Pickup Position");
     setupFretSlider(pickupPositionSlider);
@@ -106,6 +109,7 @@ GuitarSynthAudioProcessorEditor::GuitarSynthAudioProcessorEditor (GuitarSynthAud
     bodyMixAttachment = std::make_unique<SliderAttachment>(audioProcessor.apvts, "bodyMix", bodyMixSlider);
     bodySizeAttachment   = std::make_unique<SliderAttachment>(audioProcessor.apvts, "bodySize", bodySizeSlider);
     bodyDampingAttachment   = std::make_unique<SliderAttachment>(audioProcessor.apvts, "bodyDamping", bodyDampingSlider);
+    sympatheticAttachment   = std::make_unique<SliderAttachment>(audioProcessor.apvts, "sympathetic", sympatheticSlider);
     
     pickupPositionAttachment = std::make_unique<SliderAttachment>(audioProcessor.apvts, "pickupPosition", pickupPositionSlider);
     pickPositionAttachment   = std::make_unique<SliderAttachment>(audioProcessor.apvts, "pickPosition", pickPositionSlider);
@@ -224,9 +228,10 @@ void GuitarSynthAudioProcessorEditor::resized()
         label.setBounds(x - 8, y + knobSize, knobSize + 16, labelHeight);
     };
     
-    layoutKnobAt(bodyMixLabel,        bodyMixSlider,   695 + cellWidth * 0, 60);
-    layoutKnobAt(bodySizeLabel,       bodySizeSlider,      695 + cellWidth * 1, 60);
-    layoutKnobAt(bodyDampingLabel,    bodyDampingSlider,      695 + cellWidth * 2, 60);
+    layoutKnobAt(bodyMixLabel,        bodyMixSlider,   695 + cellWidth * 0, 44);
+    layoutKnobAt(bodySizeLabel,       bodySizeSlider,      695 + cellWidth * 1, 44);
+    layoutKnobAt(bodyDampingLabel,    bodyDampingSlider,      695 + cellWidth * 2, 44);
+    layoutKnobAt(sympatheticLabel,    sympatheticSlider,      695 + cellWidth * 0, 240);
 
     layoutKnobAt(pickStrengthLabel,   pickStrengthSlider,   startX + cellWidth * 0, startY);
     layoutKnobAt(pickWidthLabel,      pickWidthSlider,      startX + cellWidth * 1, startY);
