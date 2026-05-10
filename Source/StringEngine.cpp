@@ -83,23 +83,6 @@ int StringEngine::chooseStringForNote(int midiNoteNumber)
 
 void StringEngine::handleMidiEvent(const juce::MidiMessage& message)
 {
-    if (message.isNoteOn())
-    {
-        const int midiNote = message.getNoteNumber();
-        const float velocity = message.getFloatVelocity();
-
-        const int stringIndex = chooseStringForNote(midiNote);
-        
-        // Set note age
-        if (auto* string = getVoice(stringIndex))
-        {
-            string->startNote(midiNote, velocity, nullptr, 0);
-            stringStartOrder[(size_t)stringIndex] = nextStartOrder++;
-        }
-
-        return;
-    }
-
     if (message.isNoteOff())
     {
         const int midiNote = message.getNoteNumber();
@@ -108,6 +91,107 @@ void StringEngine::handleMidiEvent(const juce::MidiMessage& message)
         {
             if (string->getCurrentMidiNote() == midiNote)
                 string->stopNote(0.0f, true);
+        }
+    }
+}
+
+void StringEngine::scheduleChordNotes(std::vector<juce::MidiMessage>& noteOns,
+                                      int samplePosition)
+{
+    if (noteOns.empty())
+        return;
+
+    struct AssignedNote
+    {
+        int midiNote = 0;
+        float velocity = 0.0f;
+        int stringIndex = 0;
+    };
+
+    std::vector<AssignedNote> assigned;
+    assigned.reserve(noteOns.size());
+
+    for (const auto& note : noteOns)
+    {
+        const int midiNote = note.getNoteNumber();
+        const float velocity = note.getFloatVelocity();
+
+        const int stringIndex = chooseStringForNote(midiNote);
+
+        // Reserve immediately so chord notes do not grab the same string.
+        stringStartOrder[(size_t)stringIndex] = nextStartOrder++;
+
+        assigned.push_back({ midiNote, velocity, stringIndex });
+    }
+
+    // -1 = down strum, +1 = up strum.
+    // If 0 = low string and 5 = high string:
+    // down strum = low -> high = ascending stringIndex
+    // up strum   = high -> low = descending stringIndex
+    if (strumAmount < 0.0f)
+    {
+        std::sort(assigned.begin(), assigned.end(),
+                  [] (const AssignedNote& a, const AssignedNote& b)
+                  {
+                      return a.stringIndex < b.stringIndex;
+                  });
+    }
+    else if (strumAmount > 0.0f)
+    {
+        std::sort(assigned.begin(), assigned.end(),
+                  [] (const AssignedNote& a, const AssignedNote& b)
+                  {
+                      return a.stringIndex > b.stringIndex;
+                  });
+    }
+
+    const float strumDepth = std::abs(strumAmount);
+    const int count = (int)assigned.size();
+
+    const int maxStrumSamples =
+        (int)std::round(0.070f * (float)sr * strumDepth);
+
+    const int stepSamples =
+        count > 1
+            ? juce::jmax(1, maxStrumSamples / (count - 1))
+            : 0;
+
+    for (int i = 0; i < count; ++i)
+    {
+        ScheduledNote scheduled;
+        scheduled.midiNote = assigned[(size_t)i].midiNote;
+        scheduled.velocity = assigned[(size_t)i].velocity;
+        scheduled.stringIndex = assigned[(size_t)i].stringIndex;
+        scheduled.samplesUntilStart = samplePosition + (i * stepSamples);
+
+        scheduledNotes.push_back(scheduled);
+    }
+
+    std::sort(scheduledNotes.begin(), scheduledNotes.end(),
+              [] (const ScheduledNote& a, const ScheduledNote& b)
+              {
+                  return a.samplesUntilStart < b.samplesUntilStart;
+              });
+}
+
+void StringEngine::startScheduledNotesForSample()
+{
+    for (auto it = scheduledNotes.begin(); it != scheduledNotes.end(); )
+    {
+        if (it->samplesUntilStart <= 0)
+        {
+            if (auto* string = getVoice(it->stringIndex))
+            {
+                string->startNote(it->midiNote, it->velocity, nullptr, 0);
+                stringStartOrder[(size_t)it->stringIndex] = nextStartOrder++;
+            }
+
+            it = scheduledNotes.erase(it);
+        }
+        else
+        {
+            --(it->samplesUntilStart);
+            ++it;
         }
     }
 }
@@ -152,11 +236,32 @@ void StringEngine::renderNextBlock(juce::AudioBuffer<float>& outputBuffer,
                                    int startSample,
                                    int numSamples)
 {
+    std::vector<juce::MidiMessage> blockNoteOns;
+
     for (const auto metadata : midiMessages)
-        handleMidiEvent(metadata.getMessage());
+    {
+        const auto message = metadata.getMessage();
 
-    applySympatheticResonance();
+        if (message.isNoteOn())
+            blockNoteOns.push_back(message);
+        else
+            handleMidiEvent(message);
+    }
 
-    for (auto& string : strings)
-        string->renderNextBlock(outputBuffer, startSample, numSamples);
+    if (!blockNoteOns.empty())
+        scheduleChordNotes(blockNoteOns, 0);
+
+    for (int sample = 0; sample < numSamples; ++sample)
+    {
+        startScheduledNotesForSample();
+
+        if (++sympatheticCounter >= 256)
+        {
+            sympatheticCounter = 0;
+            applySympatheticResonance();
+        }
+
+        for (auto& string : strings)
+            string->renderNextBlock(outputBuffer, startSample + sample, 1);
+    }
 }

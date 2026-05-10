@@ -52,6 +52,7 @@ private:
     int blockSize = 512;
 
     float sympatheticAmount = 0.0f;
+    int sympatheticCounter = 0;
     float strumAmount = 0.0f;
     
     // Strumming state variables
@@ -62,6 +63,7 @@ private:
         int stringIndex = 0;
         int samplesUntilStart = 0;
     };
+    
     std::vector<ScheduledNote> scheduledNotes;
     
     // Strumming functions
