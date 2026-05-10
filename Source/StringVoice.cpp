@@ -70,95 +70,53 @@ float StringVoice::getStringEnergy() const
 
 void StringVoice::injectSympatheticEnergy(const StringVoice& sourceVoice, float amount)
 {
+    if (amount <= 0.001f)
+        return;
+
     const float sourceEnergy = sourceVoice.getStringEnergy();
 
     if (sourceEnergy < 1.0e-6f)
         return;
 
-    const int sourceNote = sourceVoice.getCurrentMidiNote();
-    const int targetNote = getCurrentMidiNote();
+    const int sourcePoint = juce::jlimit(2, sourceVoice.getCurrentNumPoints() - 3, 4);
+    const int targetPoint = juce::jlimit(2, numPoints - 3, 4);
 
-    const int semitoneDistance = std::abs(sourceNote - targetNote) % 12;
+    const float sourceMotion =
+        sourceVoice.pos[(size_t)sourcePoint]
+        + 0.35f * sourceVoice.vel[(size_t)sourcePoint];
 
-    float harmonicRelation = 0.0f;
+    const float targetMotion =
+        pos[(size_t)targetPoint]
+        + 0.35f * vel[(size_t)targetPoint];
 
-    switch (semitoneDistance)
-    {
-        case 0:  harmonicRelation = 1.00f; break;
-        case 7:  harmonicRelation = 0.65f; break;
-        case 5:  harmonicRelation = 0.45f; break;
-        case 4:  harmonicRelation = 0.30f; break;
-        case 3:  harmonicRelation = 0.20f; break;
-        default: harmonicRelation = 0.0f;  break;
-    }
+    const float coupling =
+        juce::jmap(std::pow(amount, 0.65f),
+                   0.0f, 1.0f,
+                   0.0f, 0.35f);
 
-    if (harmonicRelation <= 0.0f)
-        return;
+    const float injected =
+        coupling * (sourceMotion - targetMotion);
 
-    const float targetEnergy = getStringEnergy();
+    pos[(size_t)targetPoint] += injected;
+    vel[(size_t)targetPoint] += injected * 0.45f;
 
-    // Much gentler headroom. Only reduce injection if target is already pretty active.
-    const float headroom =
-        juce::jlimit(0.0f, 1.0f, 1.0f - (targetEnergy * 8.0f));
+    // Mirror a smaller amount near the other end.
+    const int targetMirror = numPoints - 1 - targetPoint;
 
-    const float injectionGain =
-        juce::jlimit(
-            0.0f,
-            0.012f,
-            amount * harmonicRelation * headroom
-        );
+    pos[(size_t)targetMirror] += injected * 0.35f;
+    vel[(size_t)targetMirror] += injected * 0.18f;
 
-    if (injectionGain <= 0.0f)
-        return;
+    const float couplingLoss =
+        juce::jmap(amount, 0.0f, 1.0f, 0.99995f, 0.9988f);
 
-    const int sourcePoints = sourceVoice.getCurrentNumPoints();
+    vel[(size_t)targetPoint] *= couplingLoss;
+    vel[(size_t)targetMirror] *= couplingLoss;
 
-    for (int i = 1; i < numPoints - 1; ++i)
-    {
-        const float normalized =
-            (float)i / (float)juce::jmax(1, numPoints - 1);
+    pos[(size_t)targetPoint] = juce::jlimit(-0.5f, 0.5f, pos[(size_t)targetPoint]);
+    vel[(size_t)targetPoint] = juce::jlimit(-0.5f, 0.5f, vel[(size_t)targetPoint]);
 
-        const int sourceIndex = juce::jlimit(
-            1,
-            sourcePoints - 2,
-            (int)std::round(normalized * (float)(sourcePoints - 1))
-        );
-
-        // Inject mostly velocity. That sounds more like resonance being excited,
-        // instead of directly reshaping the target string.
-        vel[(size_t)i] += sourceVoice.vel[(size_t)sourceIndex] * injectionGain;
-        pos[(size_t)i] += sourceVoice.pos[(size_t)sourceIndex] * injectionGain * 0.25f;
-    }
-    
-    // ===== Sympathetic energy damping / limiter =============================
-    // Prevent repeated same-note injection from accumulating forever.
-    const float maxSympatheticEnergy =
-        juce::jmap(amount, 0.0f, 1.0f, 0.015f, 0.08f);
-
-    const float newEnergy = getStringEnergy();
-
-    if (newEnergy > maxSympatheticEnergy)
-    {
-        const float scale = std::sqrt(maxSympatheticEnergy / newEnergy);
-
-        for (int i = 1; i < numPoints - 1; ++i)
-        {
-            pos[(size_t)i] *= scale;
-            vel[(size_t)i] *= scale;
-        }
-    }
-    else
-    {
-        // Tiny loss so repeated injections naturally settle.
-        const float sympatheticLoss =
-            juce::jmap(amount, 0.0f, 1.0f, 0.9998f, 0.9975f);
-
-        for (int i = 1; i < numPoints - 1; ++i)
-        {
-            pos[(size_t)i] *= sympatheticLoss;
-            vel[(size_t)i] *= sympatheticLoss;
-        }
-    }
+    pos[(size_t)targetMirror] = juce::jlimit(-0.5f, 0.5f, pos[(size_t)targetMirror]);
+    vel[(size_t)targetMirror] = juce::jlimit(-0.5f, 0.5f, vel[(size_t)targetMirror]);
 }
 
 void StringVoice::initializeOpenStringIfNeeded()

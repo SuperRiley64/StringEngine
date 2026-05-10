@@ -231,7 +231,7 @@ void GuitarSynthAudioProcessorEditor::resized()
     layoutKnobAt(bodyMixLabel,        bodyMixSlider,   695 + cellWidth * 0, 44);
     layoutKnobAt(bodySizeLabel,       bodySizeSlider,      695 + cellWidth * 1, 44);
     layoutKnobAt(bodyDampingLabel,    bodyDampingSlider,      695 + cellWidth * 2, 44);
-    layoutKnobAt(sympatheticLabel,    sympatheticSlider,      695 + cellWidth * 0, 240);
+    layoutKnobAt(sympatheticLabel,    sympatheticSlider,      695 + cellWidth * 0, 220);
 
     layoutKnobAt(pickStrengthLabel,   pickStrengthSlider,   startX + cellWidth * 0, startY);
     layoutKnobAt(pickWidthLabel,      pickWidthSlider,      startX + cellWidth * 1, startY);
