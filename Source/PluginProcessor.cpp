@@ -62,6 +62,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout GuitarSynthAudioProcessor::c
     params.push_back(std::make_unique<juce::AudioParameterFloat>("bodySize",    "Body Size",    0.0f, 1.0f, 0.5f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>("bodyDamping", "Body Damping", 0.0f, 1.0f, 0.5f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>("sympathetic", "Sympathetic", 0.0f, 1.0f, 0.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("strum", "Strum", -1.0f, 1.0f, 0.0f));
     
     // Fretboard sliders
     params.push_back(std::make_unique<juce::AudioParameterFloat>("pickupPosition", "Pickup Position", 0.0f, 1.0f, 0.85f));
@@ -259,7 +260,9 @@ void GuitarSynthAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     );
     
     auto sympathetic = apvts.getRawParameterValue("sympathetic");
+    auto strum = apvts.getRawParameterValue("strum");
     synth.setSympatheticAmount(sympathetic->load() * 0.1); // Scale the knob for sym. DSP
+    synth.setStrumAmount(strum->load());
     
     synth.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
 

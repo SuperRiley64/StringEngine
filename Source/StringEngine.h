@@ -31,6 +31,7 @@ public:
                          int numSamples);
 
     void setSympatheticAmount(float newAmount);
+    void setStrumAmount(float newAmount);
 
 private:
     static constexpr int stringCount = 6;
@@ -51,7 +52,23 @@ private:
     int blockSize = 512;
 
     float sympatheticAmount = 0.0f;
+    float strumAmount = 0.0f;
+    
+    // Strumming state variables
+    struct ScheduledNote
+    {
+        int midiNote = 0;
+        float velocity = 0.0f;
+        int stringIndex = 0;
+        int samplesUntilStart = 0;
+    };
+    std::vector<ScheduledNote> scheduledNotes;
+    
+    // Strumming functions
+    void startScheduledNotesForSample();
+    void scheduleChordNotes(std::vector<juce::MidiMessage>& noteOns, int samplePosition);
 
+    // Other functions
     int chooseStringForNote(int midiNoteNumber);
     void handleMidiEvent(const juce::MidiMessage& message);
     void applySympatheticResonance();

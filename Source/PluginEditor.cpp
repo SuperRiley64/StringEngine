@@ -62,6 +62,9 @@ GuitarSynthAudioProcessorEditor::GuitarSynthAudioProcessorEditor (GuitarSynthAud
     
     setupLabel(sympatheticLabel, "Sympathetic");
     setupKnob(sympatheticSlider);
+    
+    setupLabel(strumLabel, "Strum");
+    setupKnob(strumSlider);
 
     setupLabel(pickupPositionLabel, "Pickup Position");
     setupFretSlider(pickupPositionSlider);
@@ -110,6 +113,7 @@ GuitarSynthAudioProcessorEditor::GuitarSynthAudioProcessorEditor (GuitarSynthAud
     bodySizeAttachment   = std::make_unique<SliderAttachment>(audioProcessor.apvts, "bodySize", bodySizeSlider);
     bodyDampingAttachment   = std::make_unique<SliderAttachment>(audioProcessor.apvts, "bodyDamping", bodyDampingSlider);
     sympatheticAttachment   = std::make_unique<SliderAttachment>(audioProcessor.apvts, "sympathetic", sympatheticSlider);
+    strumAttachment   = std::make_unique<SliderAttachment>(audioProcessor.apvts, "strum", strumSlider);
     
     pickupPositionAttachment = std::make_unique<SliderAttachment>(audioProcessor.apvts, "pickupPosition", pickupPositionSlider);
     pickPositionAttachment   = std::make_unique<SliderAttachment>(audioProcessor.apvts, "pickPosition", pickPositionSlider);
@@ -232,6 +236,7 @@ void GuitarSynthAudioProcessorEditor::resized()
     layoutKnobAt(bodySizeLabel,       bodySizeSlider,      695 + cellWidth * 1, 44);
     layoutKnobAt(bodyDampingLabel,    bodyDampingSlider,      695 + cellWidth * 2, 44);
     layoutKnobAt(sympatheticLabel,    sympatheticSlider,      695 + cellWidth * 0, 220);
+    layoutKnobAt(strumLabel,          strumSlider,      695 + cellWidth * 1, 220);
 
     layoutKnobAt(pickStrengthLabel,   pickStrengthSlider,   startX + cellWidth * 0, startY);
     layoutKnobAt(pickWidthLabel,      pickWidthSlider,      startX + cellWidth * 1, startY);

@@ -56,6 +56,11 @@ void StringEngine::setSympatheticAmount(float newAmount)
     sympatheticAmount = juce::jlimit(0.0f, 1.0f, newAmount);
 }
 
+void StringEngine::setStrumAmount(float newAmount)
+{
+    strumAmount = juce::jlimit(-1.0f, 1.0f, newAmount);
+}
+
 int StringEngine::chooseStringForNote(int midiNoteNumber)
 {
     // ===== steal the oldest active string ==================
@@ -91,9 +96,6 @@ void StringEngine::handleMidiEvent(const juce::MidiMessage& message)
             string->startNote(midiNote, velocity, nullptr, 0);
             stringStartOrder[(size_t)stringIndex] = nextStartOrder++;
         }
-
-        if (auto* string = getVoice(stringIndex))
-            string->startNote(midiNote, velocity, nullptr, 0);
 
         return;
     }
