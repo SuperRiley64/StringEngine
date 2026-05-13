@@ -133,7 +133,7 @@ void StringEngine::scheduleChordNotes(std::vector<juce::MidiMessage>& noteOns,
         std::sort(assigned.begin(), assigned.end(),
                   [] (const AssignedNote& a, const AssignedNote& b)
                   {
-                      return a.stringIndex < b.stringIndex;
+                      return a.midiNote < b.midiNote;
                   });
     }
     else if (strumAmount > 0.0f)
@@ -141,7 +141,7 @@ void StringEngine::scheduleChordNotes(std::vector<juce::MidiMessage>& noteOns,
         std::sort(assigned.begin(), assigned.end(),
                   [] (const AssignedNote& a, const AssignedNote& b)
                   {
-                      return a.stringIndex > b.stringIndex;
+                      return a.midiNote > b.midiNote;
                   });
     }
 
