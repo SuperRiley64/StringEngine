@@ -50,6 +50,21 @@ GuitarSynthAudioProcessorEditor::GuitarSynthAudioProcessorEditor (GuitarSynthAud
         addAndMakeVisible(slider);
     };
     
+    setupLabel(slideLabel, "Slide");
+    setupKnob(slideSlider);
+    
+    setupLabel(vibratoDepthLabel, "Vib. Depth");
+    setupKnob(vibratoDepthSlider);
+    
+    setupLabel(vibratoRateLabel, "Vib. Rate");
+    setupKnob(vibratoRateSlider);
+    
+    setupLabel(legatoTimeLabel, "Leg. Time");
+    setupKnob(legatoTimeSlider);
+    
+    setupLabel(monoLegatoLabel, "Mono Leg.");
+    monoLegatoButton.setButtonText("");
+    addAndMakeVisible(monoLegatoButton);
     
     setupLabel(bodyMixLabel, "Body Mix");
     setupKnob(bodyMixSlider);
@@ -109,6 +124,12 @@ GuitarSynthAudioProcessorEditor::GuitarSynthAudioProcessorEditor (GuitarSynthAud
     letStringsRingButton.setButtonText("");
     addAndMakeVisible(letStringsRingButton);
 
+    slideAttachment = std::make_unique<SliderAttachment>(audioProcessor.apvts, "slideTime", slideSlider);
+    vibratoDepthAttachment   = std::make_unique<SliderAttachment>(audioProcessor.apvts, "vibratoDepth", vibratoDepthSlider);
+    vibratoRateAttachment   = std::make_unique<SliderAttachment>(audioProcessor.apvts, "vibratoRate", vibratoRateSlider);
+    legatoTimeAttachment   = std::make_unique<SliderAttachment>(audioProcessor.apvts, "legatoTime", legatoTimeSlider);
+    monoLegatoAttachment = std::make_unique<ButtonAttachment>(audioProcessor.apvts, "monoLegato", monoLegatoButton);
+    
     bodyMixAttachment = std::make_unique<SliderAttachment>(audioProcessor.apvts, "bodyMix", bodyMixSlider);
     bodySizeAttachment   = std::make_unique<SliderAttachment>(audioProcessor.apvts, "bodySize", bodySizeSlider);
     bodyDampingAttachment   = std::make_unique<SliderAttachment>(audioProcessor.apvts, "bodyDamping", bodyDampingSlider);
@@ -231,6 +252,12 @@ void GuitarSynthAudioProcessorEditor::resized()
         label.setJustificationType(juce::Justification::centred);
         label.setBounds(x - 8, y + knobSize, knobSize + 16, labelHeight);
     };
+    
+    layoutKnobAt(slideLabel,        slideSlider,   505 + cellWidth * 0, 44);
+    layoutKnobAt(vibratoDepthLabel,       vibratoDepthSlider,      505 + cellWidth * 1, 132);
+    layoutKnobAt(vibratoRateLabel,    vibratoRateSlider,      505 + cellWidth * 0, 132);
+    layoutKnobAt(legatoTimeLabel,    legatoTimeSlider,      505 + cellWidth * 0, 220);
+    layoutButtonAt(monoLegatoLabel, monoLegatoButton, 505 + cellWidth * 1, 220);
     
     layoutKnobAt(bodyMixLabel,        bodyMixSlider,   695 + cellWidth * 0, 44);
     layoutKnobAt(bodySizeLabel,       bodySizeSlider,      695 + cellWidth * 1, 44);

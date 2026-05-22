@@ -50,17 +50,23 @@ private:
     juce::Slider pickupPositionSlider;
     juce::Slider pickPositionSlider;
     juce::Slider palmPositionSlider;
-    juce::Slider sympatheticSlider;
-    juce::Slider strumSlider;
 
     juce::Label pickupPositionLabel;
     juce::Label pickPositionLabel;
     juce::Label palmPositionLabel;
 
     // Knobs
+    juce::Slider slideSlider;
+    juce::Slider vibratoDepthSlider;
+    juce::Slider vibratoRateSlider;
+    juce::Slider legatoTimeSlider;
+    juce::ToggleButton monoLegatoButton;
+    
     juce::Slider bodyMixSlider;
     juce::Slider bodySizeSlider;
     juce::Slider bodyDampingSlider;
+    juce::Slider sympatheticSlider;
+    juce::Slider strumSlider;
     
     juce::Slider pickStrengthSlider;
     juce::Slider pickWidthSlider;
@@ -77,6 +83,12 @@ private:
 
     juce::ToggleButton letStringsRingButton;
     
+    // Labels
+    juce::Label slideLabel;
+    juce::Label vibratoDepthLabel;
+    juce::Label vibratoRateLabel;
+    juce::Label legatoTimeLabel;
+    juce::Label monoLegatoLabel;
     
     juce::Label bodyMixLabel;
     juce::Label bodySizeLabel;
@@ -101,6 +113,12 @@ private:
     using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
     using ButtonAttachment = juce::AudioProcessorValueTreeState::ButtonAttachment;
 
+    std::unique_ptr<SliderAttachment> slideAttachment;
+    std::unique_ptr<SliderAttachment> vibratoDepthAttachment;
+    std::unique_ptr<SliderAttachment> vibratoRateAttachment;
+    std::unique_ptr<SliderAttachment> legatoTimeAttachment;
+    std::unique_ptr<ButtonAttachment> monoLegatoAttachment;
+    
     std::unique_ptr<SliderAttachment> bodyMixAttachment;
     std::unique_ptr<SliderAttachment> bodySizeAttachment;
     std::unique_ptr<SliderAttachment> bodyDampingAttachment;
