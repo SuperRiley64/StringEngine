@@ -49,6 +49,25 @@ int StringVoice::getCurrentNumPoints() const
 {
     return numPoints;
 }
+//==============================================================================
+// Pitch control
+void StringVoice::setSlideTimeMs(float newSlideTimeMs)
+{
+    slideTimeMs = juce::jlimit(0.0f, 5000.0f, newSlideTimeMs);
+}
+
+float StringVoice::computeRateForMidiNote(int midiNote) const
+{
+    const float freq =
+        juce::MidiMessage::getMidiNoteInHertz(midiNote);
+
+    return juce::jlimit(
+        0.01f,
+        0.70f,
+        (2.0f * freq * float(numPoints - 1))
+        / (float(sr) * float(subSteps))
+    );
+}
 
 //==============================================================================
 // Sympathetic Resonance
@@ -147,6 +166,12 @@ void StringVoice::initializeOpenStringIfNeeded()
            / (float(sr) * float(subSteps));
 
     rate = juce::jlimit(0.01f, maxStableRate, rate);
+    
+    // Slide
+    currentRate = rate;
+    targetRate = rate;
+    slideSamplesRemaining = 0;
+    totalSlideSamples = 0;
 
     pickupIndex = positionToPlayableIndex(pickupPosition, numPoints);
 
@@ -189,6 +214,15 @@ void StringVoice::setLetStringsRing(bool shouldRing)
 void StringVoice::startNote(int midiNoteNumber, float velocityValue,
                             juce::SynthesiserSound*, int)
 {
+    velocityGain = velocityValue;
+
+    // Slide mode: always retune this string instead of stealing/fading it.
+    if (slideTimeMs > 0.0f)
+    {
+        startNewStringNote(midiNoteNumber, velocityValue);
+        return;
+    }
+
     if (isVoiceActive() && !isReleasing)
     {
         float energy = 0.0f;
@@ -223,19 +257,18 @@ void StringVoice::startNewStringNote(int midiNoteNumber, float velocityValue)
     quietSamples = 0;
     colorFilterState = 0.0f;
 
-    pos.fill(0.0f);
-    vel.fill(0.0f);
+    const bool wasAudible = getStringEnergy() > 1.0e-5f;
+
+    const int previousMidiNote = getCurrentMidiNote();
 
     velocityGain = velocityValue;
     currentMidiNote = midiNoteNumber;
     isReleasing = false;
 
+    // ===== Retune string geometry to the NEW note =============================
     const float freq = juce::MidiMessage::getMidiNoteInHertz(midiNoteNumber);
 
-    // TODO: Make this a Stability / Quality parameter.
     const float maxStableRate = 0.70f;
-
-    // TODO: Make this a Quality parameter.
     const int minUsefulPoints = 16;
 
     subSteps = 1;
@@ -253,10 +286,50 @@ void StringVoice::startNewStringNote(int midiNoteNumber, float velocityValue)
     numPoints = juce::jlimit(minUsefulPoints, maxPoints, maxAllowedPoints);
     pickupIndex = positionToPlayableIndex(pickupPosition, numPoints);
 
-    rate = (2.0f * freq * float(numPoints - 1))
-           / (float(sr) * float(subSteps));
+    const float finalRate =
+        juce::jlimit(
+            0.01f,
+            maxStableRate,
+            (2.0f * freq * float(numPoints - 1))
+            / (float(sr) * float(subSteps))
+        );
 
-    rate = juce::jlimit(0.01f, maxStableRate, rate);
+    // ===== Slide from previous pitch to new pitch =============================
+    if (slideTimeMs > 0.0f && previousMidiNote >= 0)
+    {
+        const float previousFreq =
+            juce::MidiMessage::getMidiNoteInHertz(previousMidiNote);
+
+        const float pitchRatio =
+            previousFreq / juce::jmax(1.0f, freq);
+
+        slideStartRate = juce::jlimit(0.01f, maxStableRate, finalRate * pitchRatio);
+        currentRate = slideStartRate;
+        targetRate = finalRate;
+
+        totalSlideSamples = juce::jmax(
+            1,
+            (int)std::round((slideTimeMs / 1000.0f) * sr)
+        );
+
+        slideSamplesRemaining = totalSlideSamples;
+    }
+    else
+    {
+        currentRate = finalRate;
+        targetRate = finalRate;
+        slideStartRate = finalRate;
+        slideSamplesRemaining = 0;
+        totalSlideSamples = 0;
+    }
+
+    rate = targetRate;
+
+    if (!wasAudible)
+    {
+        pos.fill(0.0f);
+        vel.fill(0.0f);
+    }
 
     exciteString(velocityGain);
 }
@@ -456,6 +529,23 @@ void StringVoice::updateString()
                    0.0f, 1.0f,
                    0.0f, 0.25f);
 
+    // Compute rate for the slide
+    if (slideSamplesRemaining > 0)
+    {
+        const float t =
+            1.0f - ((float)slideSamplesRemaining / (float)totalSlideSamples);
+
+        const float smoothT = t * t * (3.0f - 2.0f * t);
+
+        currentRate = slideStartRate + (targetRate - slideStartRate) * smoothT;
+
+        --slideSamplesRemaining;
+    }
+    else
+    {
+        currentRate = targetRate;
+    }
+    
     // Extra stability damping only for stiffness energy.
     // This prevents the 4th-derivative term from turning into a trampoline.
     //const float stiffnessDamping =
@@ -482,8 +572,8 @@ void StringVoice::updateString()
             force -= stiffnessAmount * bendForce;
         }
 
-        nextVel[i] = (vel[i] + rate * force) * damping;// * stiffnessDamping;
-        nextPos[i] = pos[i] + rate * nextVel[i];
+        nextVel[i] = (vel[i] + currentRate * force) * damping;
+        nextPos[i] = pos[i] + currentRate * nextVel[i];
     }
 
     pos = nextPos;

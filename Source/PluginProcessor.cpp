@@ -56,7 +56,14 @@ void GuitarSynthAudioProcessor::copyActiveStringStates(std::array<std::vector<fl
 juce::AudioProcessorValueTreeState::ParameterLayout GuitarSynthAudioProcessor::createParameterLayout()
 {
     std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
-
+    
+    // Pitch controls
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("slideTime",     "Slide Time",     0.0f, 500.0f, 0.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("vibratoDepth",    "Vibrato Depth",    -12.0f, 12.0f, 0.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("vibratoRate", "Vibrato Rate", 0.0f, 100.0f, 0.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("legatoTime", "Legato Time", 0.0f, 5000.0f, 0.0f));
+    params.push_back(std::make_unique<juce::AudioParameterBool>("monoLegato",  "Mono Legato", false));
+    
     // Body
     params.push_back(std::make_unique<juce::AudioParameterFloat>("bodyMix",     "Body Mix",     0.0f, 1.0f, 0.5f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>("bodySize",    "Body Size",    0.0f, 1.0f, 0.5f));
@@ -204,6 +211,8 @@ void GuitarSynthAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     juce::ScopedNoDenormals noDenormals;
 
     buffer.clear();
+    
+    auto slideTime = apvts.getRawParameterValue("slideTime");
 
     auto pickupPosition = apvts.getRawParameterValue("pickupPosition");
     auto pickPosition   = apvts.getRawParameterValue("pickPosition");
@@ -228,6 +237,8 @@ void GuitarSynthAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     {
         if (auto* voice = synth.getVoice(i))
         {
+            voice->setSlideTimeMs(slideTime->load());
+            
             voice->setPickupPosition(pickupPosition->load());
             voice->setPickPosition(pickPosition->load());
             voice->setPalmPosition(palmPosition->load());

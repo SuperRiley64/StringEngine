@@ -49,6 +49,8 @@ public:
     void setPickupPosition(float newPickupPosition);
     void setLetStringsRing(bool shouldRing);
     
+    void setSlideTimeMs(float newSlideTimeMs);
+    
     void setPickPosition(float newPickPosition);
     void setPickWidth(float newPickWidth);
     void setPickStrength(float newPickStrength);
@@ -71,6 +73,7 @@ private:
     void startNewStringNote(int midiNoteNumber, float velocityValue);
     void initializeOpenStringIfNeeded();
     bool hasBeenInitialized = false;
+    float computeRateForMidiNote(int midiNoteNumber) const;
 
     double sr = 44100.0;
     int fadeInSamples = 0;
@@ -96,6 +99,17 @@ private:
     // Sympathetic resonance / string identity
     int openMidiNote = 40;      // Default low E
     int currentMidiNote = -1;   // -1 means idle/open string
+    
+    // State variables for slide
+    float slideTimeMs = 0.0f;
+
+    int slideTargetMidiNote = -1;
+    float currentRate = 0.1f;
+    float targetRate = 0.1f;
+    float slideStartRate = 0.0f;
+
+    int slideSamplesRemaining = 0;
+    int totalSlideSamples = 0;
     
     // State variables to fix popping on voice steals
     bool pendingNewNote = false;
