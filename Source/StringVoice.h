@@ -50,6 +50,8 @@ public:
     void setLetStringsRing(bool shouldRing);
     
     void setSlideTimeMs(float newSlideTimeMs);
+    void setVibratoDepthSemitones(float newDepth);
+    void setVibratoRateHz(float newRate);
     
     void setPickPosition(float newPickPosition);
     void setPickWidth(float newPickWidth);
@@ -99,7 +101,7 @@ private:
     // Sympathetic resonance / string identity
     int openMidiNote = 40;      // Default low E
     int currentMidiNote = -1;   // -1 means idle/open string
-    
+
     // State variables for slide
     float slideTimeMs = 0.0f;
 
@@ -110,6 +112,11 @@ private:
 
     int slideSamplesRemaining = 0;
     int totalSlideSamples = 0;
+    
+    // State variables for vibrato
+    float vibratoDepthSemitones = 0.0f;
+    float vibratoRateHz = 0.0f;
+    float vibratoPhase = 0.0f;
     
     // State variables to fix popping on voice steals
     bool pendingNewNote = false;

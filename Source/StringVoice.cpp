@@ -69,6 +69,16 @@ float StringVoice::computeRateForMidiNote(int midiNote) const
     );
 }
 
+void StringVoice::setVibratoDepthSemitones(float newDepth)
+{
+    vibratoDepthSemitones = juce::jlimit(-12.0f, 12.0f, newDepth);
+}
+
+void StringVoice::setVibratoRateHz(float newRate)
+{
+    vibratoRateHz = juce::jlimit(0.0f, 100.0f, newRate);
+}
+
 //==============================================================================
 // Sympathetic Resonance
 
@@ -546,6 +556,29 @@ void StringVoice::updateString()
         currentRate = targetRate;
     }
     
+    float pitchRate = currentRate;
+
+    if (vibratoRateHz > 0.001f && std::abs(vibratoDepthSemitones) > 0.001f)
+    {
+        vibratoPhase += juce::MathConstants<float>::twoPi
+                        * vibratoRateHz
+                        / (float)sr;
+
+        if (vibratoPhase >= juce::MathConstants<float>::twoPi)
+            vibratoPhase -= juce::MathConstants<float>::twoPi;
+
+        const float vibratoSemitones =
+            std::sin(vibratoPhase) * vibratoDepthSemitones;
+
+        const float vibratoRatio =
+            std::pow(2.0f, vibratoSemitones / 12.0f);
+
+        pitchRate *= vibratoRatio;
+
+        // Keep the physical solver stable.
+        pitchRate = juce::jlimit(0.01f, 0.70f, pitchRate);
+    }
+    
     // Extra stability damping only for stiffness energy.
     // This prevents the 4th-derivative term from turning into a trampoline.
     //const float stiffnessDamping =
@@ -572,8 +605,8 @@ void StringVoice::updateString()
             force -= stiffnessAmount * bendForce;
         }
 
-        nextVel[i] = (vel[i] + currentRate * force) * damping;
-        nextPos[i] = pos[i] + currentRate * nextVel[i];
+        nextVel[i] = (vel[i] + pitchRate * force) * damping;
+        nextPos[i] = pos[i] + pitchRate * nextVel[i];
     }
 
     pos = nextPos;

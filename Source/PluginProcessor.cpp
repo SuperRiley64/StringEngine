@@ -59,8 +59,13 @@ juce::AudioProcessorValueTreeState::ParameterLayout GuitarSynthAudioProcessor::c
     
     // Pitch controls
     params.push_back(std::make_unique<juce::AudioParameterFloat>("slideTime",     "Slide Time",     0.0f, 500.0f, 0.0f));
-    params.push_back(std::make_unique<juce::AudioParameterFloat>("vibratoDepth",    "Vibrato Depth",    -12.0f, 12.0f, 0.0f));
-    params.push_back(std::make_unique<juce::AudioParameterFloat>("vibratoRate", "Vibrato Rate", 0.0f, 100.0f, 0.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("vibratoDepth",    "Vibrato Depth",    0.0f, 3.0f, 0.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("vibratoRate", "Vibrato Rate",
+                                                                 juce::NormalisableRange<float>(0.0f,
+                                                                                                10.0f,
+                                                                                                0.01f,
+                                                                                                0.35f // With skew for finer control
+                                                                                                ), 0.0f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>("legatoTime", "Legato Time", 0.0f, 5000.0f, 0.0f));
     params.push_back(std::make_unique<juce::AudioParameterBool>("monoLegato",  "Mono Legato", false));
     
@@ -213,6 +218,8 @@ void GuitarSynthAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     buffer.clear();
     
     auto slideTime = apvts.getRawParameterValue("slideTime");
+    auto vibratoDepth = apvts.getRawParameterValue("vibratoDepth");
+    auto vibratoRate  = apvts.getRawParameterValue("vibratoRate");
 
     auto pickupPosition = apvts.getRawParameterValue("pickupPosition");
     auto pickPosition   = apvts.getRawParameterValue("pickPosition");
@@ -238,6 +245,8 @@ void GuitarSynthAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         if (auto* voice = synth.getVoice(i))
         {
             voice->setSlideTimeMs(slideTime->load());
+            voice->setVibratoDepthSemitones(vibratoDepth->load());
+            voice->setVibratoRateHz(vibratoRate->load());
             
             voice->setPickupPosition(pickupPosition->load());
             voice->setPickPosition(pickPosition->load());
