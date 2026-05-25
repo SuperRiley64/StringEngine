@@ -7943,7 +7943,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\..\background_png">
+    <None Include="..\..\background_png">
       <Filter>StringEngine</Filter>
     </None>
     <None Include="C:\JUCE\modules\juce_audio_devices\native\asio\LICENSE.txt">
