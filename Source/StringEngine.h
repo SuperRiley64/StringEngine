@@ -32,6 +32,8 @@ public:
 
     void setSympatheticAmount(float newAmount);
     void setStrumAmount(float newAmount);
+    void setMonoLegato(bool shouldUseMono);
+    void setLegatoTimeMs(float newTimeMs);
 
 private:
     static constexpr int stringCount = 6;
@@ -54,6 +56,14 @@ private:
     float sympatheticAmount = 0.0f;
     int sympatheticCounter = 0;
     float strumAmount = 0.0f;
+    
+    // Mono/legato state variables
+    void handleMonoMidiEvent(const juce::MidiMessage& message);
+    bool monoLegato = false;
+    float legatoTimeMs = 0.0f;
+
+    int monoStringIndex = 0;
+    std::vector<int> heldMonoNotes;
     
     // Strumming state variables
     struct ScheduledNote

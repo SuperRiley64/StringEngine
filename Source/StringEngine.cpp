@@ -95,6 +95,80 @@ void StringEngine::handleMidiEvent(const juce::MidiMessage& message)
     }
 }
 
+// Mono/legato setters
+void StringEngine::setMonoLegato(bool shouldUseMono)
+{
+    monoLegato = shouldUseMono;
+}
+
+void StringEngine::setLegatoTimeMs(float newTimeMs)
+{
+    legatoTimeMs = juce::jlimit(0.0f, 5000.0f, newTimeMs);
+}
+
+void StringEngine::handleMonoMidiEvent(const juce::MidiMessage& message)
+{
+    auto* string = getVoice(monoStringIndex);
+
+    if (string == nullptr)
+        return;
+
+    if (message.isNoteOn())
+    {
+        const int midiNote = message.getNoteNumber();
+        const float velocity = message.getFloatVelocity();
+
+        const bool shouldLegato = !heldMonoNotes.empty();
+
+        heldMonoNotes.erase(
+            std::remove(heldMonoNotes.begin(), heldMonoNotes.end(), midiNote),
+            heldMonoNotes.end()
+        );
+
+        heldMonoNotes.push_back(midiNote);
+
+        if (shouldLegato)
+        {
+            string->setSlideTimeMs(legatoTimeMs);
+            string->startLegatoNote(midiNote, velocity, nullptr, 0);
+        }
+        else
+        {
+            // First note: no legato slide.
+            string->setSlideTimeMs(0.0f);
+            string->startNote(midiNote, velocity, nullptr, 0);
+        }
+
+        stringStartOrder[(size_t)monoStringIndex] = nextStartOrder++;
+        return;
+    }
+
+    if (message.isNoteOff())
+    {
+        const int midiNote = message.getNoteNumber();
+
+        heldMonoNotes.erase(
+            std::remove(heldMonoNotes.begin(), heldMonoNotes.end(), midiNote),
+            heldMonoNotes.end()
+        );
+
+        if (!heldMonoNotes.empty())
+        {
+            const int previousNote = heldMonoNotes.back();
+
+            string->setSlideTimeMs(legatoTimeMs);
+            string->startLegatoNote(previousNote, 0.7f, nullptr, 0);
+        }
+        else
+        {
+            string->setSlideTimeMs(0.0f);
+            string->stopNote(0.0f, true);
+        }
+    }
+}
+
+// Strum functions
+
 void StringEngine::scheduleChordNotes(std::vector<juce::MidiMessage>& noteOns,
                                       int samplePosition)
 {
@@ -236,6 +310,26 @@ void StringEngine::renderNextBlock(juce::AudioBuffer<float>& outputBuffer,
                                    int startSample,
                                    int numSamples)
 {
+    if (monoLegato)
+        {
+            for (const auto metadata : midiMessages)
+                handleMonoMidiEvent(metadata.getMessage());
+            
+            for (int sample = 0; sample < numSamples; ++sample)
+            {
+                if (++sympatheticCounter >= 256)
+                {
+                    sympatheticCounter = 0;
+                    applySympatheticResonance();
+                }
+                
+                for (auto& string : strings)
+                    string->renderNextBlock(outputBuffer, startSample + sample, 1);
+            }
+
+            return;
+        }
+    
     std::vector<juce::MidiMessage> blockNoteOns;
 
     for (const auto metadata : midiMessages)

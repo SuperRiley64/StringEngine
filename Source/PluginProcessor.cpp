@@ -32,23 +32,16 @@ GuitarSynthAudioProcessor::~GuitarSynthAudioProcessor()
 }
 
 // Visualizer
-void GuitarSynthAudioProcessor::copyActiveStringStates(std::array<std::vector<float>, 6>& destinations) const
+void GuitarSynthAudioProcessor::copyActiveStringStates(
+    std::array<std::vector<float>, 6>& destinations) const
 {
     for (auto& dest : destinations)
         dest.clear();
 
-    int stringIndex = 0;
-
-    for (int i = 0; i < synth.getNumVoices() && stringIndex < 6; ++i)
+    for (int i = 0; i < synth.getNumVoices() && i < 6; ++i)
     {
         if (auto* voice = synth.getVoice(i))
-        {
-            if (voice->isVoiceActive())
-            {
-                voice->copyStringState(destinations[(size_t)stringIndex]);
-                ++stringIndex;
-            }
-        }
+            voice->copyStringState(destinations[(size_t)i]);
     }
 }
 
@@ -220,6 +213,8 @@ void GuitarSynthAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     auto slideTime = apvts.getRawParameterValue("slideTime");
     auto vibratoDepth = apvts.getRawParameterValue("vibratoDepth");
     auto vibratoRate  = apvts.getRawParameterValue("vibratoRate");
+    auto monoLegato = apvts.getRawParameterValue("monoLegato");
+    auto legatoTime = apvts.getRawParameterValue("legatoTime");
 
     auto pickupPosition = apvts.getRawParameterValue("pickupPosition");
     auto pickPosition   = apvts.getRawParameterValue("pickPosition");
@@ -281,6 +276,10 @@ void GuitarSynthAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     
     auto sympathetic = apvts.getRawParameterValue("sympathetic");
     auto strum = apvts.getRawParameterValue("strum");
+    
+    synth.setMonoLegato(monoLegato->load() >= 0.5f);
+    synth.setLegatoTimeMs(legatoTime->load());
+    
     synth.setSympatheticAmount(sympathetic->load() * 0.1); // Scale the knob for sym. DSP
     synth.setStrumAmount(strum->load());
     

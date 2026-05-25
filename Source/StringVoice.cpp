@@ -229,7 +229,7 @@ void StringVoice::startNote(int midiNoteNumber, float velocityValue,
     // Slide mode: always retune this string instead of stealing/fading it.
     if (slideTimeMs > 0.0f)
     {
-        startNewStringNote(midiNoteNumber, velocityValue);
+        startNewStringNote(midiNoteNumber, velocityValue, true);
         return;
     }
 
@@ -253,68 +253,121 @@ void StringVoice::startNote(int midiNoteNumber, float velocityValue,
         }
     }
 
-    startNewStringNote(midiNoteNumber, velocityValue);
+    startNewStringNote(midiNoteNumber, velocityValue, true);
 }
 
-void StringVoice::startNewStringNote(int midiNoteNumber, float velocityValue)
+void StringVoice::startLegatoNote(int midiNoteNumber, float velocityValue,
+                                  juce::SynthesiserSound*, int)
+{
+    velocityGain = velocityValue;
+
+    // Legato = retune/slide existing string, but do not re-pluck.
+    // No steal fade, no pendingNewNote, no exciteString().
+    startNewStringNote(midiNoteNumber, velocityValue, false);
+}
+
+void StringVoice::startNewStringNote(int midiNoteNumber, float velocityValue, bool shouldExciteString)
 {
     pendingNewNote = false;
     stealFadeCounter = 0;
     releaseGain = 1.0f;
 
-    fadeInSamples = juce::jmax(1, (int)(0.003 * sr));
-    fadeInCounter = 0;
+    if (shouldExciteString)
+    {
+        fadeInSamples = juce::jmax(1, (int)(0.003 * sr));
+        fadeInCounter = 0;
+        colorFilterState = 0.0f;
+    }
+
     quietSamples = 0;
-    colorFilterState = 0.0f;
 
     const bool wasAudible = getStringEnergy() > 1.0e-5f;
 
-    const int previousMidiNote = getCurrentMidiNote();
-
     velocityGain = velocityValue;
-    currentMidiNote = midiNoteNumber;
     isReleasing = false;
 
     // ===== Retune string geometry to the NEW note =============================
-    const float freq = juce::MidiMessage::getMidiNoteInHertz(midiNoteNumber);
+    const bool legatoRetuneOnly = !shouldExciteString && wasAudible;
 
-    const float maxStableRate = 0.70f;
-    const int minUsefulPoints = 16;
+    float finalRate = 0.0f;
 
-    subSteps = 1;
-
-    while ((2.0f * freq * float(minUsefulPoints - 1))
-           / (float(sr) * float(subSteps)) > maxStableRate)
+    if (legatoRetuneOnly)
     {
-        ++subSteps;
+        const int oldSubSteps = subSteps;
+
+        const float targetFreq =
+            juce::MidiMessage::getMidiNoteInHertz(midiNoteNumber);
+
+        const float maxStableRate = 0.70f;
+
+        int newSubSteps = subSteps;
+
+        while ((2.0f * targetFreq * float(numPoints - 1))
+               / (float(sr) * float(newSubSteps)) > maxStableRate)
+        {
+            ++newSubSteps;
+        }
+
+        // If subSteps changes, preserve the CURRENT audible pitch.
+        // Pitch is roughly proportional to rate * subSteps.
+        if (newSubSteps != oldSubSteps)
+        {
+            const float preservePitchScale =
+                float(oldSubSteps) / float(newSubSteps);
+
+            currentRate    *= preservePitchScale;
+            targetRate     *= preservePitchScale;
+            slideStartRate *= preservePitchScale;
+        }
+
+        subSteps = newSubSteps;
+
+        finalRate = juce::jlimit(
+            0.01f,
+            maxStableRate,
+            (2.0f * targetFreq * float(numPoints - 1))
+            / (float(sr) * float(subSteps))
+        );
     }
+    else
+    {
+        // Picked/new note: rebuild geometry for the note.
+        const float freq = juce::MidiMessage::getMidiNoteInHertz(midiNoteNumber);
 
-    const int maxAllowedPoints =
-        1 + (int)std::floor((maxStableRate * float(sr) * float(subSteps))
-                            / (2.0f * freq));
+        const float maxStableRate = 0.70f;
+        const int minUsefulPoints = 16;
 
-    numPoints = juce::jlimit(minUsefulPoints, maxPoints, maxAllowedPoints);
-    pickupIndex = positionToPlayableIndex(pickupPosition, numPoints);
+        subSteps = 1;
 
-    const float finalRate =
-        juce::jlimit(
+        while ((2.0f * freq * float(minUsefulPoints - 1))
+               / (float(sr) * float(subSteps)) > maxStableRate)
+        {
+            ++subSteps;
+        }
+
+        const int maxAllowedPoints =
+            1 + (int)std::floor((maxStableRate * float(sr) * float(subSteps))
+                                / (2.0f * freq));
+
+        numPoints = juce::jlimit(minUsefulPoints, maxPoints, maxAllowedPoints);
+        pickupIndex = positionToPlayableIndex(pickupPosition, numPoints);
+
+        finalRate = juce::jlimit(
             0.01f,
             maxStableRate,
             (2.0f * freq * float(numPoints - 1))
             / (float(sr) * float(subSteps))
         );
-
-    // ===== Slide from previous pitch to new pitch =============================
-    if (slideTimeMs > 0.0f && previousMidiNote >= 0)
+    }
+    
+    currentMidiNote = midiNoteNumber;
+    // ===== Slide from current audible pitch to new pitch =======================
+    if (slideTimeMs > 0.0f)
     {
-        const float previousFreq =
-            juce::MidiMessage::getMidiNoteInHertz(previousMidiNote);
+        // This is the important part:
+        // use whatever pitch the string is actually producing right now.
+        slideStartRate = currentRate;
 
-        const float pitchRatio =
-            previousFreq / juce::jmax(1.0f, freq);
-
-        slideStartRate = juce::jlimit(0.01f, maxStableRate, finalRate * pitchRatio);
-        currentRate = slideStartRate;
         targetRate = finalRate;
 
         totalSlideSamples = juce::jmax(
@@ -340,8 +393,8 @@ void StringVoice::startNewStringNote(int midiNoteNumber, float velocityValue)
         pos.fill(0.0f);
         vel.fill(0.0f);
     }
-
-    exciteString(velocityGain);
+    if (shouldExciteString)
+        exciteString(velocityGain);
 }
 
 void StringVoice::stopNote(float, bool)
@@ -679,7 +732,7 @@ float StringVoice::getNextSample()
             pendingNewNote = false;
             pos.fill(0.0f);
             vel.fill(0.0f);
-            startNewStringNote(pendingMidiNote, pendingVelocity);
+            startNewStringNote(pendingMidiNote, pendingVelocity, true);
         }
     }
 

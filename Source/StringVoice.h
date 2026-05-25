@@ -24,6 +24,9 @@ public:
 
     void startNote(int midiNoteNumber, float velocity,
                    juce::SynthesiserSound*, int currentPitchWheelPosition) override;
+    
+    void startLegatoNote(int midiNoteNumber, float velocity,
+                   juce::SynthesiserSound*, int currentPitchWheelPosition);
 
     void stopNote(float velocity, bool allowTailOff) override;
 
@@ -72,7 +75,7 @@ private:
     float getNextSample();
     void exciteString(float velocity);
     void updateString();
-    void startNewStringNote(int midiNoteNumber, float velocityValue);
+    void startNewStringNote(int midiNoteNumber, float velocityValue, bool shouldExciteString);
     void initializeOpenStringIfNeeded();
     bool hasBeenInitialized = false;
     float computeRateForMidiNote(int midiNoteNumber) const;

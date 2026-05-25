@@ -369,7 +369,7 @@ void GuitarSynthAudioProcessorEditor::drawStringVisualizer(juce::Graphics& g, ju
                 const float xNorm = (float)i / (float)(n - 1);
                 const float x = inner.getX() + xNorm * inner.getWidth();
 
-                const float y = centerY - buffer[(size_t)i] * laneHeight;
+                const float y = centerY - buffer[(size_t)i] * laneHeight*3;
 
                 if (i == 0)
                     stringPath.startNewSubPath(x, y);
