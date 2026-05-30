@@ -27,6 +27,8 @@ public:
     
     void startLegatoNote(int midiNoteNumber, float velocity,
                    juce::SynthesiserSound*, int currentPitchWheelPosition);
+    
+    void startPickedSlideNote(int fromMidiNote, int toMidiNote, float velocity);
 
     void stopNote(float velocity, bool allowTailOff) override;
 
@@ -79,6 +81,7 @@ private:
     void initializeOpenStringIfNeeded();
     bool hasBeenInitialized = false;
     float computeRateForMidiNote(int midiNoteNumber) const;
+    float computeRateForFrequency(float freq) const;
 
     double sr = 44100.0;
     int fadeInSamples = 0;
@@ -115,6 +118,10 @@ private:
 
     int slideSamplesRemaining = 0;
     int totalSlideSamples = 0;
+    
+    bool useFrequencySlide = false;
+    float slideStartFreq = 0.0f;
+    float slideTargetFreq = 0.0f;
     
     // State variables for vibrato
     float vibratoDepthSemitones = 0.0f;

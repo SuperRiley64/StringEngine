@@ -34,6 +34,7 @@ public:
     void setStrumAmount(float newAmount);
     void setMonoLegato(bool shouldUseMono);
     void setLegatoTimeMs(float newTimeMs);
+    void setSlideTimeMs(float newTimeMs);
 
 private:
     static constexpr int stringCount = 6;
@@ -61,6 +62,7 @@ private:
     void handleMonoMidiEvent(const juce::MidiMessage& message);
     bool monoLegato = false;
     float legatoTimeMs = 0.0f;
+    float slideTimeMs = 0.0f;
 
     int monoStringIndex = 0;
     std::vector<int> heldMonoNotes;
@@ -80,6 +82,13 @@ private:
     void startScheduledNotesForSample();
     void scheduleChordNotes(std::vector<juce::MidiMessage>& noteOns, int samplePosition);
 
+    // Voicing and slide variables/functions
+    std::array<int, stringCount> stringHeldNote {};
+    std::array<bool, stringCount> stringIsHeld {};
+
+    int findStringHoldingNote(int midiNoteNumber) const;
+    void releaseNote(int midiNoteNumber);
+    
     // Other functions
     int chooseStringForNote(int midiNoteNumber);
     void handleMidiEvent(const juce::MidiMessage& message);

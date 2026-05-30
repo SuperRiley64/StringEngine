@@ -23,6 +23,12 @@ void StringEngine::prepare(double sampleRate, int samplesPerBlock)
 
     for (auto& string : strings)
         string->prepare(sampleRate, samplesPerBlock);
+    
+    for (int i = 0; i < stringCount; ++i)
+    {
+        stringHeldNote[(size_t)i] = -1;
+        stringIsHeld[(size_t)i] = false;
+    }
 }
 
 void StringEngine::setCurrentPlaybackSampleRate(double sampleRate)
@@ -61,38 +67,104 @@ void StringEngine::setStrumAmount(float newAmount)
     strumAmount = juce::jlimit(-1.0f, 1.0f, newAmount);
 }
 
+void StringEngine::setSlideTimeMs(float newTimeMs)
+{
+    slideTimeMs = juce::jlimit(0.0f, 5000.0f, newTimeMs);
+}
+
+int StringEngine::findStringHoldingNote(int midiNoteNumber) const
+{
+    for (int i = 0; i < stringCount; ++i)
+    {
+        if (stringIsHeld[(size_t)i] &&
+            stringHeldNote[(size_t)i] == midiNoteNumber)
+        {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
 int StringEngine::chooseStringForNote(int midiNoteNumber)
 {
-    // ===== steal the oldest active string ==================
-    int oldestString = 0;
+    // 1. If this exact note is currently held, reuse that string.
+    if (const int existing = findStringHoldingNote(midiNoteNumber); existing >= 0)
+        return existing;
+
+    // 2. Prefer a string that is not currently held.
+    // This allows normal chords to use multiple strings.
+    int bestFree = -1;
+    float lowestFreeEnergy = std::numeric_limits<float>::max();
+
+    for (int i = 0; i < stringCount; ++i)
+    {
+        if (stringIsHeld[(size_t)i])
+            continue;
+
+        auto* string = getVoice(i);
+        if (string == nullptr)
+            continue;
+
+        const float energy = string->getStringEnergy();
+
+        if (energy < lowestFreeEnergy)
+        {
+            lowestFreeEnergy = energy;
+            bestFree = i;
+        }
+    }
+
+    if (bestFree >= 0)
+        return bestFree;
+
+    // 3. No free strings: steal quietest, tie-break oldest.
+    int bestSteal = 0;
+    float quietestEnergy = std::numeric_limits<float>::max();
     int oldestOrder = std::numeric_limits<int>::max();
 
     for (int i = 0; i < stringCount; ++i)
     {
+        auto* string = getVoice(i);
+        if (string == nullptr)
+            continue;
+
+        const float energy = string->getStringEnergy();
         const int order = stringStartOrder[(size_t)i];
 
-        if (order < oldestOrder)
+        if (energy < quietestEnergy ||
+            (std::abs(energy - quietestEnergy) < 1.0e-6f && order < oldestOrder))
         {
+            quietestEnergy = energy;
             oldestOrder = order;
-            oldestString = i;
+            bestSteal = i;
         }
     }
 
-    return oldestString;
+    return bestSteal;
+}
+
+void StringEngine::releaseNote(int midiNoteNumber)
+{
+    for (int i = 0; i < stringCount; ++i)
+    {
+        if (stringHeldNote[(size_t)i] == midiNoteNumber)
+        {
+            stringIsHeld[(size_t)i] = false;
+
+            if (auto* string = getVoice(i))
+                string->stopNote(0.0f, true);
+
+            // Do NOT clear stringHeldNote.
+            // Poly slide uses this as the previous picked pitch.
+        }
+    }
 }
 
 void StringEngine::handleMidiEvent(const juce::MidiMessage& message)
 {
     if (message.isNoteOff())
-    {
-        const int midiNote = message.getNoteNumber();
-
-        for (auto& string : strings)
-        {
-            if (string->getCurrentMidiNote() == midiNote)
-                string->stopNote(0.0f, true);
-        }
-    }
+        releaseNote(message.getNoteNumber());
 }
 
 // Mono/legato setters
@@ -182,26 +254,129 @@ void StringEngine::scheduleChordNotes(std::vector<juce::MidiMessage>& noteOns,
         int stringIndex = 0;
     };
 
+    struct HeldString
+    {
+        int midiNote = 0;
+        int stringIndex = 0;
+    };
+
     std::vector<AssignedNote> assigned;
     assigned.reserve(noteOns.size());
 
-    for (const auto& note : noteOns)
+    std::vector<juce::MidiMessage> sortedNotes = noteOns;
+
+    std::sort(sortedNotes.begin(), sortedNotes.end(),
+              [] (const juce::MidiMessage& a, const juce::MidiMessage& b)
+              {
+                  return a.getNoteNumber() < b.getNoteNumber();
+              });
+
+    std::vector<HeldString> heldStrings;
+
+    // Chord slide mapping
+    for (int i = 0; i < stringCount; ++i)
     {
-        const int midiNote = note.getNoteNumber();
-        const float velocity = note.getFloatVelocity();
-
-        const int stringIndex = chooseStringForNote(midiNote);
-
-        // Reserve immediately so chord notes do not grab the same string.
-        stringStartOrder[(size_t)stringIndex] = nextStartOrder++;
-
-        assigned.push_back({ midiNote, velocity, stringIndex });
+        if (stringHeldNote[(size_t)i] >= 0)
+            heldStrings.push_back({ stringHeldNote[(size_t)i], i });
     }
 
-    // -1 = down strum, +1 = up strum.
-    // If 0 = low string and 5 = high string:
-    // down strum = low -> high = ascending stringIndex
-    // up strum   = high -> low = descending stringIndex
+    std::sort(heldStrings.begin(), heldStrings.end(),
+              [] (const HeldString& a, const HeldString& b)
+              {
+                  return a.midiNote < b.midiNote;
+              });
+
+    std::array<bool, stringCount> reservedThisChord {};
+    reservedThisChord.fill(false);
+
+    // ===== Slide mode: preserve chord voice order =============================
+    if (slideTimeMs > 0.0f && !heldStrings.empty())
+    {
+        const int pairedCount =
+            juce::jmin((int)sortedNotes.size(), (int)heldStrings.size());
+
+        for (int i = 0; i < pairedCount; ++i)
+        {
+            const auto& note = sortedNotes[(size_t)i];
+            const int stringIndex = heldStrings[(size_t)i].stringIndex;
+
+            reservedThisChord[(size_t)stringIndex] = true;
+
+            assigned.push_back({
+                note.getNoteNumber(),
+                note.getFloatVelocity(),
+                stringIndex
+            });
+        }
+
+        // Extra new notes get free strings.
+        for (int i = pairedCount; i < (int)sortedNotes.size(); ++i)
+        {
+            const auto& note = sortedNotes[(size_t)i];
+
+            int stringIndex = -1;
+
+            for (int s = 0; s < stringCount; ++s)
+            {
+                if (!reservedThisChord[(size_t)s] && !stringIsHeld[(size_t)s])
+                {
+                    stringIndex = s;
+                    break;
+                }
+            }
+
+            if (stringIndex < 0)
+            {
+                for (int s = 0; s < stringCount; ++s)
+                {
+                    if (!reservedThisChord[(size_t)s])
+                    {
+                        stringIndex = s;
+                        break;
+                    }
+                }
+            }
+
+            if (stringIndex >= 0)
+            {
+                reservedThisChord[(size_t)stringIndex] = true;
+
+                assigned.push_back({
+                    note.getNoteNumber(),
+                    note.getFloatVelocity(),
+                    stringIndex
+                });
+            }
+        }
+    }
+    else
+    {
+        // ===== Normal mode: allocate separate strings for chord notes ==========
+        for (const auto& note : sortedNotes)
+        {
+            const int midiNote = note.getNoteNumber();
+            const float velocity = note.getFloatVelocity();
+
+            int stringIndex = chooseStringForNote(midiNote);
+
+            if (reservedThisChord[(size_t)stringIndex])
+            {
+                for (int i = 0; i < stringCount; ++i)
+                {
+                    if (!reservedThisChord[(size_t)i] && !stringIsHeld[(size_t)i])
+                    {
+                        stringIndex = i;
+                        break;
+                    }
+                }
+            }
+
+            reservedThisChord[(size_t)stringIndex] = true;
+
+            assigned.push_back({ midiNote, velocity, stringIndex });
+        }
+    }
+
     if (strumAmount < 0.0f)
     {
         std::sort(assigned.begin(), assigned.end(),
@@ -226,9 +401,7 @@ void StringEngine::scheduleChordNotes(std::vector<juce::MidiMessage>& noteOns,
         (int)std::round(0.070f * (float)sr * strumDepth);
 
     const int stepSamples =
-        count > 1
-            ? juce::jmax(1, maxStrumSamples / (count - 1))
-            : 0;
+        count > 1 ? juce::jmax(1, maxStrumSamples / (count - 1)) : 0;
 
     for (int i = 0; i < count; ++i)
     {
@@ -256,7 +429,23 @@ void StringEngine::startScheduledNotesForSample()
         {
             if (auto* string = getVoice(it->stringIndex))
             {
-                string->startNote(it->midiNote, it->velocity, nullptr, 0);
+                const int oldNote = stringHeldNote[(size_t)it->stringIndex];
+
+                if (slideTimeMs > 0.0f &&
+                    oldNote >= 0 &&
+                    oldNote != it->midiNote)
+                {
+                    string->setSlideTimeMs(slideTimeMs);
+                    string->startPickedSlideNote(oldNote, it->midiNote, it->velocity);
+                }
+                else
+                {
+                    string->setSlideTimeMs(0.0f);
+                    string->startNote(it->midiNote, it->velocity, nullptr, 0);
+                }
+
+                stringHeldNote[(size_t)it->stringIndex] = it->midiNote;
+                stringIsHeld[(size_t)it->stringIndex] = true;
                 stringStartOrder[(size_t)it->stringIndex] = nextStartOrder++;
             }
 
@@ -264,7 +453,7 @@ void StringEngine::startScheduledNotesForSample()
         }
         else
         {
-            --(it->samplesUntilStart);
+            --it->samplesUntilStart;
             ++it;
         }
     }

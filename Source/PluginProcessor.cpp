@@ -239,7 +239,7 @@ void GuitarSynthAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     {
         if (auto* voice = synth.getVoice(i))
         {
-            voice->setSlideTimeMs(slideTime->load());
+            voice->setSlideTimeMs(legatoTime->load());
             voice->setVibratoDepthSemitones(vibratoDepth->load());
             voice->setVibratoRateHz(vibratoRate->load());
             
@@ -264,6 +264,8 @@ void GuitarSynthAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         }
     }
     
+    synth.setSlideTimeMs(slideTime->load());
+    
     auto bodyMix     = apvts.getRawParameterValue("bodyMix");
     auto bodySize    = apvts.getRawParameterValue("bodySize");
     auto bodyDamping = apvts.getRawParameterValue("bodyDamping");
@@ -280,7 +282,7 @@ void GuitarSynthAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     synth.setMonoLegato(monoLegato->load() >= 0.5f);
     synth.setLegatoTimeMs(legatoTime->load());
     
-    synth.setSympatheticAmount(sympathetic->load() * 0.1); // Scale the knob for sym. DSP
+    synth.setSympatheticAmount(sympathetic->load() * 0.2); // Scale the knob for sym. DSP
     synth.setStrumAmount(strum->load());
     
     synth.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());

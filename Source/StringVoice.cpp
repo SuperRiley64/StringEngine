@@ -69,6 +69,16 @@ float StringVoice::computeRateForMidiNote(int midiNote) const
     );
 }
 
+float StringVoice::computeRateForFrequency(float freq) const
+{
+    return juce::jlimit(
+        0.01f,
+        0.70f,
+        (2.0f * freq * float(numPoints - 1))
+        / (float(sr) * float(subSteps))
+    );
+}
+
 void StringVoice::setVibratoDepthSemitones(float newDepth)
 {
     vibratoDepthSemitones = juce::jlimit(-12.0f, 12.0f, newDepth);
@@ -264,6 +274,30 @@ void StringVoice::startLegatoNote(int midiNoteNumber, float velocityValue,
     // Legato = retune/slide existing string, but do not re-pluck.
     // No steal fade, no pendingNewNote, no exciteString().
     startNewStringNote(midiNoteNumber, velocityValue, false);
+}
+
+void StringVoice::startPickedSlideNote(int fromMidiNote, int toMidiNote, float velocityValue)
+{
+    const float originalSlideTimeMs = slideTimeMs;
+
+    startNewStringNote(toMidiNote, velocityValue, true);
+
+    if (originalSlideTimeMs <= 0.0f)
+        return;
+
+    slideStartFreq = juce::MidiMessage::getMidiNoteInHertz(fromMidiNote);
+    slideTargetFreq = juce::MidiMessage::getMidiNoteInHertz(toMidiNote);
+
+    totalSlideSamples = juce::jmax(
+        1,
+        (int)std::round((originalSlideTimeMs / 1000.0f) * sr)
+    );
+
+    slideSamplesRemaining = totalSlideSamples;
+    useFrequencySlide = true;
+
+    currentRate = computeRateForFrequency(slideStartFreq);
+    targetRate  = computeRateForFrequency(slideTargetFreq);
 }
 
 void StringVoice::startNewStringNote(int midiNoteNumber, float velocityValue, bool shouldExciteString)
@@ -600,13 +634,24 @@ void StringVoice::updateString()
 
         const float smoothT = t * t * (3.0f - 2.0f * t);
 
-        currentRate = slideStartRate + (targetRate - slideStartRate) * smoothT;
+        if (useFrequencySlide)
+        {
+            const float currentFreq =
+                slideStartFreq * std::pow(slideTargetFreq / slideStartFreq, smoothT);
+
+            currentRate = computeRateForFrequency(currentFreq);
+        }
+        else
+        {
+            currentRate = slideStartRate + (targetRate - slideStartRate) * smoothT;
+        }
 
         --slideSamplesRemaining;
     }
     else
     {
         currentRate = targetRate;
+        useFrequencySlide = false;
     }
     
     float pitchRate = currentRate;
