@@ -280,24 +280,72 @@ void StringVoice::startPickedSlideNote(int fromMidiNote, int toMidiNote, float v
 {
     const float originalSlideTimeMs = slideTimeMs;
 
-    startNewStringNote(toMidiNote, velocityValue, true);
+    pendingNewNote = false;
+    stealFadeCounter = 0;
+    releaseGain = 1.0f;
 
-    if (originalSlideTimeMs <= 0.0f)
-        return;
+    fadeInSamples = juce::jmax(1, (int)(0.003 * sr));
+    fadeInCounter = 0;
+    quietSamples = 0;
+    colorFilterState = 0.0f;
 
-    slideStartFreq = juce::MidiMessage::getMidiNoteInHertz(fromMidiNote);
-    slideTargetFreq = juce::MidiMessage::getMidiNoteInHertz(toMidiNote);
+    velocityGain = velocityValue;
+    currentMidiNote = toMidiNote;
+    isReleasing = false;
 
-    totalSlideSamples = juce::jmax(
-        1,
-        (int)std::round((originalSlideTimeMs / 1000.0f) * sr)
-    );
+    pos.fill(0.0f);
+    vel.fill(0.0f);
 
-    slideSamplesRemaining = totalSlideSamples;
-    useFrequencySlide = true;
+    const float fromFreq = juce::MidiMessage::getMidiNoteInHertz(fromMidiNote);
+    const float toFreq   = juce::MidiMessage::getMidiNoteInHertz(toMidiNote);
 
-    currentRate = computeRateForFrequency(slideStartFreq);
-    targetRate  = computeRateForFrequency(slideTargetFreq);
+    // Build geometry for the higher pitch so both up and down slides fit.
+    const float geometryFreq = juce::jmax(fromFreq, toFreq);
+
+    const float maxStableRate = 0.70f;
+    const int minUsefulPoints = 16;
+
+    subSteps = 1;
+
+    while ((2.0f * geometryFreq * float(minUsefulPoints - 1))
+           / (float(sr) * float(subSteps)) > maxStableRate)
+    {
+        ++subSteps;
+    }
+
+    const int maxAllowedPoints =
+        1 + (int)std::floor((maxStableRate * float(sr) * float(subSteps))
+                            / (2.0f * geometryFreq));
+
+    numPoints = juce::jlimit(minUsefulPoints, maxPoints, maxAllowedPoints);
+    pickupIndex = positionToPlayableIndex(pickupPosition, numPoints);
+
+    slideStartFreq = fromFreq;
+    slideTargetFreq = toFreq;
+
+    currentRate = computeRateForFrequency(fromFreq);
+    targetRate  = computeRateForFrequency(toFreq);
+    rate = targetRate;
+
+    if (originalSlideTimeMs > 0.0f)
+    {
+        totalSlideSamples = juce::jmax(
+            1,
+            (int)std::round((originalSlideTimeMs / 1000.0f) * sr)
+        );
+
+        slideSamplesRemaining = totalSlideSamples;
+        useFrequencySlide = true;
+    }
+    else
+    {
+        slideSamplesRemaining = 0;
+        totalSlideSamples = 0;
+        useFrequencySlide = false;
+        currentRate = targetRate;
+    }
+
+    exciteString(velocityGain);
 }
 
 void StringVoice::startNewStringNote(int midiNoteNumber, float velocityValue, bool shouldExciteString)

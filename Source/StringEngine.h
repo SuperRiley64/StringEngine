@@ -85,6 +85,7 @@ private:
     // Voicing and slide variables/functions
     std::array<int, stringCount> stringHeldNote {};
     std::array<bool, stringCount> stringIsHeld {};
+    std::array<bool, stringCount> stringHasHistory {};
 
     int findStringHoldingNote(int midiNoteNumber) const;
     void releaseNote(int midiNoteNumber);

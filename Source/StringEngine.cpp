@@ -28,6 +28,7 @@ void StringEngine::prepare(double sampleRate, int samplesPerBlock)
     {
         stringHeldNote[(size_t)i] = -1;
         stringIsHeld[(size_t)i] = false;
+        stringHasHistory[(size_t)i] = false;
     }
 }
 
@@ -429,11 +430,17 @@ void StringEngine::startScheduledNotesForSample()
         {
             if (auto* string = getVoice(it->stringIndex))
             {
-                const int oldNote = stringHeldNote[(size_t)it->stringIndex];
+                const size_t index = (size_t)it->stringIndex;
 
-                if (slideTimeMs > 0.0f &&
+                const int oldNote = stringHeldNote[index];
+
+                const bool shouldSlide =
+                    slideTimeMs > 0.0f &&
+                    stringHasHistory[index] &&
                     oldNote >= 0 &&
-                    oldNote != it->midiNote)
+                    oldNote != it->midiNote;
+
+                if (shouldSlide)
                 {
                     string->setSlideTimeMs(slideTimeMs);
                     string->startPickedSlideNote(oldNote, it->midiNote, it->velocity);
@@ -444,9 +451,10 @@ void StringEngine::startScheduledNotesForSample()
                     string->startNote(it->midiNote, it->velocity, nullptr, 0);
                 }
 
-                stringHeldNote[(size_t)it->stringIndex] = it->midiNote;
-                stringIsHeld[(size_t)it->stringIndex] = true;
-                stringStartOrder[(size_t)it->stringIndex] = nextStartOrder++;
+                stringHeldNote[index] = it->midiNote;
+                stringIsHeld[index] = true;
+                stringHasHistory[index] = true;
+                stringStartOrder[index] = nextStartOrder++;
             }
 
             it = scheduledNotes.erase(it);
