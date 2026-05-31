@@ -2,7 +2,8 @@
 
 A VST3 physically-modeled plucked string synthesizer inspired by Revitar2, built with JUCE. Based on the DSP code of Revitar2 maintained by SwooshyCueb (https://github.com/SwooshyCueb/Revitar2/tree/master)
 
-Demo: [StringEngine-Demo.mp3](https://github.com/user-attachments/files/28202196/StringEngine-Demo.mp3)
+Demo: [StringEngineTest2-SlideWorks.mp3](https://github.com/user-attachments/files/28430581/StringEngineTest2-SlideWorks.mp3)
+
 
 <img width="1003" height="501" alt="image" src="https://github.com/user-attachments/assets/1001da35-882b-4bd3-923d-ac926a0b1234" />
 
