@@ -5,7 +5,8 @@ A VST3 physically-modeled plucked string synthesizer inspired by Revitar2, built
 Demo: [StringEngineTest2-SlideWorks.mp3](https://github.com/user-attachments/files/28430581/StringEngineTest2-SlideWorks.mp3)
 
 
-<img width="1003" height="501" alt="image" src="https://github.com/user-attachments/assets/1001da35-882b-4bd3-923d-ac926a0b1234" />
+<img width="1003" height="501" alt="image" src="https://github.com/user-attachments/assets/f7a3502d-4bad-4f10-8b9e-d242e49201ec" />
+
 
 ## Features:
 - Pick, pickup, and palm mute position across the entire length of the strings
