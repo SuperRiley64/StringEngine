@@ -13,6 +13,63 @@
 #include <array>
 #include "PluginProcessor.h"
 
+//=====SVG Knob LookAndFeel========================================
+/**
+*/
+class SvgKnobLookAndFeel : public juce::LookAndFeel_V4
+{
+public:
+    SvgKnobLookAndFeel()
+    {
+        knob = juce::Drawable::createFromImageData(
+            BinaryData::knob_svg,
+            BinaryData::knob_svgSize
+        );
+    }
+
+    void drawRotarySlider(juce::Graphics& g,
+                          int x, int y, int width, int height,
+                          float sliderPos,
+                          float rotaryStartAngle,
+                          float rotaryEndAngle,
+                          juce::Slider&) override
+    {
+        if (knob == nullptr)
+            return;
+
+        const float angle = rotaryStartAngle
+            + sliderPos * (rotaryEndAngle - rotaryStartAngle);
+
+        const auto bounds = juce::Rectangle<float>(
+            (float)x, (float)y, (float)width, (float)height
+        ).reduced(2.0f);
+
+        g.saveState();
+
+        g.addTransform(
+            juce::AffineTransform::rotation(
+                angle,
+                bounds.getCentreX(),
+                bounds.getCentreY()
+            )
+        );
+
+        knob->drawWithin(
+            g,
+            bounds,
+            juce::RectanglePlacement::centred,
+            1.0f
+        );
+
+        g.restoreState();
+    }
+
+private:
+    std::unique_ptr<juce::Drawable> knob;
+};
+
+
+
 //==============================================================================
 /**
 */
@@ -44,6 +101,8 @@ private:
     juce::Rectangle<int> stringVisualizerArea;
     
     juce::Image backgroundImage;
+    
+    SvgKnobLookAndFeel svgKnobLookAndFeel;
     
     // Parameters
     // Fretboard sliders

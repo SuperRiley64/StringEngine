@@ -27,12 +27,17 @@ GuitarSynthAudioProcessorEditor::GuitarSynthAudioProcessorEditor (GuitarSynthAud
         addAndMakeVisible(label);
     };
 
-    auto setupFretSlider = [this] (juce::Slider& slider)
+    auto setupFretSlider = [this] (juce::Slider& slider, juce::Colour color)
     {
         slider.setSliderStyle(juce::Slider::LinearHorizontal);
         slider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
         slider.setRange(0.0, 1.0, 0.001);
         slider.setPopupDisplayEnabled(true, false, this);
+
+        slider.setColour(juce::Slider::trackColourId, color.withAlpha(0.35f));
+        slider.setColour(juce::Slider::backgroundColourId, color.withAlpha(0.45f));
+        slider.setColour(juce::Slider::thumbColourId, color);
+
         addAndMakeVisible(slider);
     };
 
@@ -42,10 +47,13 @@ GuitarSynthAudioProcessorEditor::GuitarSynthAudioProcessorEditor (GuitarSynthAud
         slider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
         slider.setRange(0.0, 1.0, 0.001);
         slider.setPopupDisplayEnabled(true, false, this);
+
         slider.setRotaryParameters(
             juce::MathConstants<float>::pi * 1.2f,
             juce::MathConstants<float>::pi * 2.8f,
             true);
+
+        slider.setLookAndFeel(&svgKnobLookAndFeel);
 
         addAndMakeVisible(slider);
     };
@@ -82,13 +90,13 @@ GuitarSynthAudioProcessorEditor::GuitarSynthAudioProcessorEditor (GuitarSynthAud
     setupKnob(strumSlider);
 
     setupLabel(pickupPositionLabel, "Pickup Position");
-    setupFretSlider(pickupPositionSlider);
+    setupFretSlider(pickupPositionSlider, juce::Colours::limegreen);
 
     setupLabel(pickPositionLabel, "Pick Position");
-    setupFretSlider(pickPositionSlider);
+    setupFretSlider(pickPositionSlider, juce::Colours::orange);
 
     setupLabel(palmPositionLabel, "Palm Position");
-    setupFretSlider(palmPositionSlider);
+    setupFretSlider(palmPositionSlider, juce::Colours::yellow);
 
     setupLabel(pickStrengthLabel, "Pick Amp");
     setupKnob(pickStrengthSlider);
@@ -161,6 +169,31 @@ GuitarSynthAudioProcessorEditor::GuitarSynthAudioProcessorEditor (GuitarSynthAud
 
 GuitarSynthAudioProcessorEditor::~GuitarSynthAudioProcessorEditor()
 {
+    // LookAndFeel cleanup
+    for (auto* slider : {
+        &slideSlider,
+        &vibratoDepthSlider,
+        &vibratoRateSlider,
+        &legatoTimeSlider,
+        &bodyMixSlider,
+        &bodySizeSlider,
+        &bodyDampingSlider,
+        &sympatheticSlider,
+        &strumSlider,
+        &pickStrengthSlider,
+        &harmonicsSlider,
+        &pickNoiseSlider,
+        &pickWidthSlider,
+        &pickShapeSlider,
+        &pickCenterSlider,
+        &colorSlider,
+        &bridgeDampingSlider,
+        &palmDampingSlider,
+        &stiffnessSlider
+    })
+    {
+        slider->setLookAndFeel(nullptr);
+    }
 }
 
 //==============================================================================
@@ -204,6 +237,7 @@ void GuitarSynthAudioProcessorEditor::resized()
 
     auto leftHalf = top.removeFromLeft(area.getWidth() / 2);
     stringVisualizerArea = leftHalf.reduced(4);
+    stringVisualizerArea.removeFromRight(20);
 
     auto fretRow = area.removeFromTop(80);
     const auto sliderWidth = fretRow.getWidth() / 3;
@@ -211,6 +245,7 @@ void GuitarSynthAudioProcessorEditor::resized()
     auto layoutFretSlider = [&fretRow, sliderWidth] (juce::Label& label, juce::Slider& slider)
     {
         auto cell = fretRow.removeFromLeft(sliderWidth).reduced(8, 0);
+        cell.removeFromRight(8);
 
         label.setJustificationType(juce::Justification::centred);
         label.setBounds(cell.removeFromTop(20));
@@ -283,7 +318,7 @@ void GuitarSynthAudioProcessorEditor::resized()
 
 void GuitarSynthAudioProcessorEditor::drawStringVisualizer(juce::Graphics& g, juce::Rectangle<int> area)
 {
-    g.setColour(juce::Colours::darkgrey);
+    g.setColour(juce::Colours::black);
     g.fillRoundedRectangle(area.toFloat(), 6.0f);
 
     g.setColour(juce::Colours::grey);
@@ -330,15 +365,15 @@ void GuitarSynthAudioProcessorEditor::drawStringVisualizer(juce::Graphics& g, ju
 
     g.setColour(juce::Colours::orange);
     g.drawLine(pickX, (float)inner.getY(), pickX, (float)inner.getBottom(), 2.0f);
-    g.drawText("Pick", (int)pickX - 25, inner.getY(), 50, 18, juce::Justification::centred);
+    //g.drawText("Pick", (int)pickX - 25, inner.getY(), 50, 18, juce::Justification::centred);
 
     g.setColour(juce::Colours::limegreen);
     g.drawLine(pickupX, (float)inner.getY(), pickupX, (float)inner.getBottom(), 2.0f);
-    g.drawText("Pickup", (int)pickupX - 35, inner.getBottom() - 18, 70, 18, juce::Justification::centred);
+    //g.drawText("Pickup", (int)pickupX - 35, inner.getBottom() - 18, 70, 18, juce::Justification::centred);
 
     g.setColour(juce::Colours::yellow);
     g.drawLine(palmX, (float)inner.getY(), palmX, (float)inner.getBottom(), 2.0f);
-    g.drawText("Palm", (int)palmX - 25, inner.getY() + 18, 50, 18, juce::Justification::centred);
+    //g.drawText("Palm", (int)palmX - 25, inner.getY() + 18, 50, 18, juce::Justification::centred);
 
     const int stringCount = 6;
     const float laneHeight = inner.getHeight() / (float)stringCount;

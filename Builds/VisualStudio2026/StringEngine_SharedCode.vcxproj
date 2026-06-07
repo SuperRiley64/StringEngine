@@ -4399,7 +4399,8 @@
     <ClInclude Include="..\..\JuceLibraryCode\JucePluginDefines.h"/>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\background_png"/>
+    <None Include="..\..\knob.svg"/>
+    <None Include="..\..\background.png"/>
     <None Include="C:\JUCE\modules\juce_audio_devices\native\asio\LICENSE.txt"/>
     <None Include="C:\JUCE\modules\juce_audio_devices\native\oboe\src\common\README.md"/>
     <None Include="C:\JUCE\modules\juce_audio_devices\native\oboe\src\flowgraph\resampler\README.md"/>
